@@ -86,7 +86,7 @@ def read_bam(f, c):
 	return a, junctions
 
 
-def prepare_for_R(a, junctions, c):
+def prepare_for_R(a, junctions, c, m):
 
 	chr, start, end = parse_coordinates(args.coordinates)
 
@@ -99,6 +99,11 @@ def prepare_for_R(a, junctions, c):
 
 	# Prepare arrays for junctions (which will be the arcs)
 	for (don, acc), n in junctions.iteritems():
+
+		# Do not add junctions with less than defined coverage
+		if n < m:
+			continue
+
 		dons.append(don)
 		accs.append(acc)
 		counts.append(n)
@@ -116,6 +121,8 @@ if __name__ == "__main__":
 	parser = ArgumentParser(description='Create sashimi plot for a given genomic region')
 	parser.add_argument("-b", "--bam", type=str, help="Bam file")
 	parser.add_argument("-c", "--coordinates", type=str, help="Genomic region. Format: chr:start-end. Remember that bam coordinates are 0-based")
+	parser.add_argument("-m", "--min_coverage", type=int, default=0, 
+		help="Minimum number of reads supporting a junction to be drawn [default=0]")
 #	parser.add_argument("-s", "--smooth", action="store_true", default=False, help="Smooth the signal histogram")
 	args = parser.parse_args()
 	
@@ -123,7 +130,7 @@ if __name__ == "__main__":
 	args.bam = "/nfs/no_backup/rg/epalumbo/projects/tg/work/8b/8b0ac8705f37fd772a06ab7db89f6b/2A_m4_n10_toGenome.bam"
 	
 	a, junctions = read_bam(args.bam, args.coordinates)
-	x, y, dons, accs, yd, ya, counts = prepare_for_R(a, junctions, args.coordinates)
+	x, y, dons, accs, yd, ya, counts = prepare_for_R(a, junctions, args.coordinates, args.min_coverage)
 	
 
 	print """
@@ -136,16 +143,44 @@ if __name__ == "__main__":
 
 	gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity')
 
-	myCurve<-curveGrob(0, 0, 1, 1, default.units = "npc",
-               curvature = -0.3, angle = 30, ncp = 20, shape = 1,
-               square = FALSE, squareShape = 1,
-               inflect = FALSE, open = TRUE,
-               debug = FALSE,
-               name = NULL, gp = gpar(col='grey'), vp = NULL)
+	curve = function(angle, color, lwd, curvature=-0.3) {
+		curveGrob(0, 1, 1, 0, default.units = "npc",
+		curvature = curvature, ncp = 50, shape = -1,
+		square = T, squareShape = 1,
+		inflect = F, open = TRUE, 
+		name = NULL, vp = NULL, debug = FALSE, 
+		gp = gpar(col=color, lwd=lwd), angle = angle)
+	}
 
 	for (i in 1:nrow(junctions)) {
 		j = as.numeric(junctions[i,])
-		gp = gp + annotation_custom(grob=myCurve,j[1], j[2], j[3], j[4])
+		# Find intron midpoint 
+		xmid = round(mean(j[1:2]), 1)
+		ymid = round(mean(j[3:4]), 1)
+		
+		# Left curve
+		curve = curveGrob(0, 0, 1, 1, default.units = "npc",
+			curvature = -0.4, ncp = 100, shape = -1,
+			square = T, squareShape = 0,
+			inflect = F, open = TRUE, 
+			name = NULL, vp = NULL, debug = FALSE, 
+			gp = gpar(col="grey", lwd=1), angle = 120
+		)
+		gp = gp + annotation_custom(grob = curve, j[1], xmid, j[3], 20)
+
+		# Right curve
+		curve = curveGrob(1, 0, 0, 1, default.units = "npc",
+			curvature = +0.4, ncp = 100, shape = -1,
+			square = T, squareShape = 0,
+			inflect = F, open = TRUE, 
+			name = NULL, vp = NULL, debug = FALSE, 
+			gp = gpar(col="grey", lwd=1), angle = 40
+		)
+		gp = gp + annotation_custom(grob = curve, xmid, j[2], 20, j[4])
+
+#		my_grob = curve(90, "black", 1, -0.3)
+#		gp = gp + annotation_custom(grob = my_grob, j[1], j[2], j[3], j[4])
+
 	}
 
 
