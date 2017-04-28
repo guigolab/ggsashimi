@@ -122,7 +122,25 @@ def prepare_for_R(a, junctions, c, m):
 	return x, y, dons, accs, yd, ya, counts
 
 
+def read_gtf(f, c):
+	exons = {}
+	chr, start, end = parse_coordinates(c)
+	with open(f) as openf:
+		for line in openf:
+			el_chr, ann, el, el_start, el_end, score1, strand, score2, tags = line.strip().split("\t")
+			if el_chr != chr:
+				continue
+			if el != "exon":
+				continue
+			exon_start, exon_end = int(el_start), int(el_end)
+			# Ignore elements not included in the region
+			if not (start < exon_start < end or start < exon_end < end):
+				continue
 
+			d = dict(kv.split(" ") for kv in tags.strip(";").split("; "))
+			transcript_id = d["transcript_id"].strip("\"")
+			exons.setdefault(transcript_id, []).append((max(exon_start, start), min(end, exon_end), strand))
+	return exons
 
 
 if __name__ == "__main__":
@@ -134,12 +152,17 @@ if __name__ == "__main__":
 	parser.add_argument("-c", "--coordinates", type=str, help="Genomic region. Format: chr:start-end. Remember that bam coordinates are 0-based")
 	parser.add_argument("-M", "--min_coverage", type=int, default=1, 
 		help="Minimum number of reads supporting a junction to be drawn [default=1]")
+	parser.add_argument("-g", "--gtf", 
+		help="Gtf file with annotation (only exons is enough)")
 #	parser.add_argument("-s", "--smooth", action="store_true", default=False, help="Smooth the signal histogram")
 	args = parser.parse_args()
 	
 	args.coordinates = "chrX:9609491-9612406"
 #	args.coordinates = "chrX:9609491-9610000"
 #	args.bam = "/nfs/no_backup/rg/epalumbo/projects/tg/work/8b/8b0ac8705f37fd772a06ab7db89f6b/2A_m4_n10_toGenome.bam"
+
+	if args.gtf:
+		annotation = read_gtf(args.gtf, args.coordinates)
 
 	bam_dict = {}
 	for id, bam in read_bam_input(args.bam):
@@ -201,6 +224,8 @@ if __name__ == "__main__":
 		# Density plot
 		gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity')
 	
+		gp = gp + labs(title="id")
+
 		j_tot_counts = sum(junctions[['count']])
 	
 		for (i in 1:nrow(junctions)) {
@@ -244,6 +269,7 @@ if __name__ == "__main__":
 				)
 			}
 	
+
 	#		gp = gp + annotation_custom(grob = rectGrob(x=0, y=0, gp=gpar(col="red"), just=c("left","bottom")), xmid, j[2], j[4], ymid)
 	#		gp = gp + annotation_custom(grob = rectGrob(x=0, y=0, gp=gpar(col="green"), just=c("left","bottom")), j[1], xmid, j[3], ymid)
 	
