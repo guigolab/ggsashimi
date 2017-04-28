@@ -21,7 +21,7 @@ def parse_coordinates(c):
 
 
 
-def count_operator(CIGAR_op, CIGAR_len, pos, start, end, a, junctions):
+def count_operator(CIGAR_op, CIGAR_len, pos, start, end, a, junctions, line):
 
 	# Match
 	if CIGAR_op == "M":
@@ -31,12 +31,12 @@ def count_operator(CIGAR_op, CIGAR_len, pos, start, end, a, junctions):
 			ind = i - start
 			a[ind] += 1
 
-	# Insertion
-	if CIGAR_op == "I":
+	# Insertion or Soft-clip
+	if CIGAR_op == "I" or CIGAR_op == "S":
 		return pos
 
-	# Deletion or Soft-clip
-	if CIGAR_op == "D" or CIGAR_op == "S":
+	# Deletion 
+	if CIGAR_op == "D":
 		pass
 
 	# Junction
@@ -79,7 +79,7 @@ def read_bam(f, c):
 
 		for n, CIGAR_op in enumerate(CIGAR_ops):
 			CIGAR_len = int(CIGAR_lens[n])
-			pos = count_operator(CIGAR_op, CIGAR_len, pos, start, end, a, junctions)
+			pos = count_operator(CIGAR_op, CIGAR_len, pos, start, end, a, junctions, line=line)
 
 	p.stdout.close()
 	
@@ -108,8 +108,8 @@ def prepare_for_R(a, junctions, c, m):
 		accs.append(acc)
 		counts.append(n)
 
-		yd.append( a[ don - start ])
-		ya.append( a[ acc - start ])
+		yd.append( a[ don - start -1 ])
+		ya.append( a[ acc - start +1 ])
 
 	return x, y, dons, accs, yd, ya, counts
 
@@ -140,27 +140,38 @@ if __name__ == "__main__":
 	d = data.frame(x=c(%(x)s), y=c(%(y)s))
 #	d[['y']] = as.double(smooth(d[['y']]))
 
-	junctions = data.frame(x=c(%(dons)s), xend=c(%(accs)s), y=c(%(yd)s), yend=c(%(ya)s), count=c(%(counts)s))
+	maxheight = max(d[['y']])
 
-	
 	height = 4
 	base_size = 14
 	theme_set(theme_bw(base_size=base_size))
+
+	# Density plot
 	gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity')
 
-	
+	junctions = data.frame(x=c(%(dons)s), xend=c(%(accs)s), y=c(%(yd)s), yend=c(%(ya)s), count=c(%(counts)s))
 
 	for (i in 1:nrow(junctions)) {
+
 		j = as.numeric(junctions[i,])
+
 		# Find intron midpoint 
 		xmid = round(mean(j[1:2]), 1)
 		ymid = abs(j[4]-j[3]) * 1.1 + min(j[3:4])
+
+		nss = length(match(j[1], junctions[,1]))
+		print(nss)
+		if (nss%%%%2 == 0) {
+			ymid = -0.4 * maxheight
+		}
+			
 	
 
-
+		# Draw the archs
+		# Left
 		curve = xsplineGrob(x=c(0, 0, 1, 1), y=c(0, 1, 1, 1), shape=1)
 		gp = gp + annotation_custom(grob = curve, j[1], xmid, j[3], ymid)
-
+		# Right
 		curve = xsplineGrob(x=c(1, 1, 0, 0), y=c(0, 1, 1, 1), shape=1)
 		gp = gp + annotation_custom(grob = curve, xmid, j[2], j[4], ymid)
 
@@ -169,7 +180,7 @@ if __name__ == "__main__":
 
 		gp = gp + annotate("label", x = xmid, y = ymid, label = j[5], 
 			vjust=0.5, hjust=0.5, label.padding=unit(0.01, "lines"), 
-			label.size=NA, size=(base_size*0.352777778)*0.7
+			label.size=NA, size=(base_size*0.352777778)*0.6
 		)
 		
 
