@@ -142,14 +142,24 @@ if __name__ == "__main__":
 
 	maxheight = max(d[['y']])
 
+	scale_lwd = function(r) {
+		lmin = 0.1
+		lmax = 2
+		return( max(lmin, r*(lmax-lmin)))
+	}
+
 	height = 4
 	base_size = 14
 	theme_set(theme_bw(base_size=base_size))
+	theme_update(
+		panel.grid = element_blank(),
+	)
 
 	# Density plot
 	gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity')
 
 	junctions = data.frame(x=c(%(dons)s), xend=c(%(accs)s), y=c(%(yd)s), yend=c(%(ya)s), count=c(%(counts)s))
+	j_tot_counts = sum(junctions[['count']])
 
 	for (i in 1:nrow(junctions)) {
 
@@ -157,32 +167,44 @@ if __name__ == "__main__":
 
 		# Find intron midpoint 
 		xmid = round(mean(j[1:2]), 1)
-		ymid = abs(j[4]-j[3]) * 1.1 + min(j[3:4])
+		ymid = max(j[3:4]) * 1.1
 
+		# Thickness of the arch
+		lwd = scale_lwd(j[5]/j_tot_counts)
+
+		curve_par = gpar(lwd=lwd)
+
+		# Choose position of the arch (top or bottom)
 		nss = length(match(j[1], junctions[,1]))
-		print(nss)
-		if (nss%%%%2 == 0) {
+		if (nss%%%%2 == 0) {  #bottom
 			ymid = -0.4 * maxheight
-		}
-			
-	
+			# Draw the archs
+			# Left
+			curve = xsplineGrob(x=c(0, 0, 1, 1), y=c(1, 0, 0, 0), shape=1, gp=curve_par)
+			gp = gp + annotation_custom(grob = curve, j[1], xmid, 0, ymid)
+			# Right
+			curve = xsplineGrob(x=c(1, 1, 0, 0), y=c(1, 0, 0, 0), shape=1, gp=curve_par)
+			gp = gp + annotation_custom(grob = curve, xmid, j[2], 0, ymid)
+		} 
 
-		# Draw the archs
-		# Left
-		curve = xsplineGrob(x=c(0, 0, 1, 1), y=c(0, 1, 1, 1), shape=1)
-		gp = gp + annotation_custom(grob = curve, j[1], xmid, j[3], ymid)
-		# Right
-		curve = xsplineGrob(x=c(1, 1, 0, 0), y=c(0, 1, 1, 1), shape=1)
-		gp = gp + annotation_custom(grob = curve, xmid, j[2], j[4], ymid)
+		if (nss%%%%2 != 0) {  #top
+			# Draw the archs
+			# Left
+			curve = xsplineGrob(x=c(0, 0, 1, 1), y=c(0, 1, 1, 1), shape=1, gp=curve_par)
+			gp = gp + annotation_custom(grob = curve, j[1], xmid, j[3], ymid)
+			# Right
+			curve = xsplineGrob(x=c(1, 1, 0, 0), y=c(0, 1, 1, 1), shape=1, gp=curve_par)
+			gp = gp + annotation_custom(grob = curve, xmid, j[2], j[4], ymid)
+	
+			gp = gp + annotate("label", x = xmid, y = ymid, label = j[5], 
+				vjust=0.5, hjust=0.5, label.padding=unit(0.01, "lines"), 
+				label.size=NA, size=(base_size*0.352777778)*0.6
+			)
+		}
 
 #		gp = gp + annotation_custom(grob = rectGrob(x=0, y=0, gp=gpar(col="red"), just=c("left","bottom")), xmid, j[2], j[4], ymid)
 #		gp = gp + annotation_custom(grob = rectGrob(x=0, y=0, gp=gpar(col="green"), just=c("left","bottom")), j[1], xmid, j[3], ymid)
 
-		gp = gp + annotate("label", x = xmid, y = ymid, label = j[5], 
-			vjust=0.5, hjust=0.5, label.padding=unit(0.01, "lines"), 
-			label.size=NA, size=(base_size*0.352777778)*0.6
-		)
-		
 
 	}
 
