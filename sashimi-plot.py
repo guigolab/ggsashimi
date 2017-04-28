@@ -144,15 +144,15 @@ if __name__ == "__main__":
 
 	scale_lwd = function(r) {
 		lmin = 0.1
-		lmax = 2
-		return( max(lmin, r*(lmax-lmin)))
+		lmax = 4
+		return( r*(lmax-lmin)+lmin )
 	}
 
 	height = 4
 	base_size = 14
 	theme_set(theme_bw(base_size=base_size))
 	theme_update(
-		panel.grid = element_blank(),
+		panel.grid = element_blank()
 	)
 
 	# Density plot
