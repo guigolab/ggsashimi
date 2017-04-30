@@ -4,11 +4,23 @@
 from argparse import ArgumentParser
 #from subprocess import Popen, PIPE
 import subprocess as sp
-import sys
-import re
+import sys, re
+import operator
 
 
-
+def define_options():
+	# Argument parsing
+	parser = ArgumentParser(description='Create sashimi plot for a given genomic region')
+	parser.add_argument("-b", "--bam", type=str, 
+		help="Individual bam file or file with a list of bam files and ids")
+	parser.add_argument("-c", "--coordinates", type=str,
+		help="Genomic region. Format: chr:start-end. Remember that bam coordinates are 0-based")
+	parser.add_argument("-M", "--min_coverage", type=int, default=1, 
+		help="Minimum number of reads supporting a junction to be drawn [default=1]")
+	parser.add_argument("-g", "--gtf", 
+		help="Gtf file with annotation (only exons is enough)")
+#	parser.add_argument("-s", "--smooth", action="store_true", default=False, help="Smooth the signal histogram")
+	return parser
 
 
 
@@ -138,23 +150,15 @@ def read_gtf(f, c):
 				continue
 
 			d = dict(kv.split(" ") for kv in tags.strip(";").split("; "))
-			transcript_id = d["transcript_id"].strip("\"")
+			transcript_id = d["transcript_id"]
+			strand = '"' + strand + '"'
 			exons.setdefault(transcript_id, []).append((max(exon_start, start), min(end, exon_end), strand))
 	return exons
 
 
 if __name__ == "__main__":
 
-	# Argument parsing
-	
-	parser = ArgumentParser(description='Create sashimi plot for a given genomic region')
-	parser.add_argument("-b", "--bam", type=str, help="Individual bam file or file with a list of bam files and ids")
-	parser.add_argument("-c", "--coordinates", type=str, help="Genomic region. Format: chr:start-end. Remember that bam coordinates are 0-based")
-	parser.add_argument("-M", "--min_coverage", type=int, default=1, 
-		help="Minimum number of reads supporting a junction to be drawn [default=1]")
-	parser.add_argument("-g", "--gtf", 
-		help="Gtf file with annotation (only exons is enough)")
-#	parser.add_argument("-s", "--smooth", action="store_true", default=False, help="Smooth the signal histogram")
+	parser = define_options()
 	args = parser.parse_args()
 	
 	args.coordinates = "chrX:9609491-9612406"
@@ -177,6 +181,23 @@ if __name__ == "__main__":
 	junction_list = list()
 	"""
 	
+	if args.gtf:
+		print """
+		annotation = data.frame(
+			tx = rep(c(%(tx)s), c(%(n_exons)s)), 
+			exon_start = c(%(exon_start)s),
+			exon_end = c(%(exon_end)s),
+			strand = c(%(strand)s)
+		)
+		print(annotation)
+		""" %({
+			"tx": ",".join(annotation.iterkeys()),
+			"n_exons": ",".join(map(str, map(len, annotation.itervalues()))),
+			"exon_start" : ",".join(map(str, (v[0] for vs in annotation.itervalues() for v in vs))),
+			"exon_end" : ",".join(map(str, (v[1] for vs in annotation.itervalues() for v in vs))),
+			"strand" : ",".join(map(str, (v[2] for vs in annotation.itervalues() for v in vs))),
+		})
+		
 	for k, v in bam_dict.iteritems():
 		x, y, dons, accs, yd, ya, counts = v
 		
@@ -224,7 +245,7 @@ if __name__ == "__main__":
 		# Density plot
 		gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity')
 	
-		gp = gp + labs(title="id")
+		gp = gp + labs(title=id)
 
 		j_tot_counts = sum(junctions[['count']])
 	
