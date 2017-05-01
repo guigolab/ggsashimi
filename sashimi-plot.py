@@ -156,6 +156,61 @@ def read_gtf(f, c):
 	return exons
 
 
+def gtf_for_ggplot(annotation, c, arrow_bins):
+	chr, start, end = parse_coordinates(c)
+	arrow_space = (end - start)/arrow_bins
+	print """
+
+	# data table with exons
+	ann = data.table(
+		tx = rep(c(%(tx)s), c(%(n_exons)s)), 
+		exon_start = c(%(exon_start)s),
+		exon_end = c(%(exon_end)s),
+		strand = c(%(strand)s)
+	)
+	
+	# Lines for transcripts (introns)
+	txlines = ann[, list(min(exon_start), max(exon_end), unique(strand)), by=tx]
+
+	# Create data table for strand arrows
+	txarrows = data.table()
+	# Add right-pointing arrows for plus strand
+	if ("+" %%in%% txlines$V3) {
+		txarrows = rbind(
+			txarrows,
+			txlines[V3=="+", list(
+				seq(V1+%(arrow_space)s,V2,by=%(arrow_space)s)-1, 
+				seq(V1+%(arrow_space)s,V2,by=%(arrow_space)s)
+				), by=tx
+			]
+		)
+	}
+	# Add left-pointing arrows for minus strand
+	if ("-" %%in%% txlines$V3) {
+		txarrows = rbind(
+			txarrows,
+			txlines[V3=="-", list(
+				seq(V1,V2-%(arrow_space)s,by=%(arrow_space)s), 
+				seq(V1,V2-%(arrow_space)s,by=%(arrow_space)s)-1
+				), by=tx
+			]
+		)
+	}
+	gtfp = ggplot(data=txlines) + geom_segment(aes(x=V1, xend=V2, y=tx, yend=tx))
+	gtfp = gtfp + geom_segment(data=txarrows, aes(x=V1,xend=V2,y=tx,yend=tx), arrow=arrow(length=unit(0.05,"npc")))
+	gtfp = gtfp + geom_segment(data=ann, aes(x=exon_start, xend=exon_end, y=tx, yend=tx), size=4)
+	gtfp = gtfp + scale_y_discrete(expand=c(1,0))
+	""" %({
+		"tx": ",".join(annotation.iterkeys()),
+		"n_exons": ",".join(map(str, map(len, annotation.itervalues()))),
+		"exon_start" : ",".join(map(str, (v[0] for vs in annotation.itervalues() for v in vs))),
+		"exon_end" : ",".join(map(str, (v[1] for vs in annotation.itervalues() for v in vs))),
+		"strand" : ",".join(map(str, (v[2] for vs in annotation.itervalues() for v in vs))),
+		"arrow_space" : arrow_space,
+	})
+	return 
+
+
 if __name__ == "__main__":
 
 	parser = define_options()
@@ -173,30 +228,27 @@ if __name__ == "__main__":
 		a, junctions = read_bam(bam, args.coordinates)
 	 	bam_dict[id] = prepare_for_R(a, junctions, args.coordinates, args.min_coverage)
 	
+
 	print """
 	library(ggplot2)
 	library(grid)
+	library(data.table)
+
+	height = 6
+	base_size = 14
+	theme_set(theme_bw(base_size=base_size))
+	theme_update(
+		panel.grid = element_blank()
+	)
 
 	density_list = list()
 	junction_list = list()
 	"""
-	
+
+	arrow_bins = 50
 	if args.gtf:
-		print """
-		annotation = data.frame(
-			tx = rep(c(%(tx)s), c(%(n_exons)s)), 
-			exon_start = c(%(exon_start)s),
-			exon_end = c(%(exon_end)s),
-			strand = c(%(strand)s)
-		)
-		print(annotation)
-		""" %({
-			"tx": ",".join(annotation.iterkeys()),
-			"n_exons": ",".join(map(str, map(len, annotation.itervalues()))),
-			"exon_start" : ",".join(map(str, (v[0] for vs in annotation.itervalues() for v in vs))),
-			"exon_end" : ",".join(map(str, (v[1] for vs in annotation.itervalues() for v in vs))),
-			"strand" : ",".join(map(str, (v[2] for vs in annotation.itervalues() for v in vs))),
-		})
+		gtf_for_ggplot(annotation, args.coordinates, arrow_bins)
+		
 		
 	for k, v in bam_dict.iteritems():
 		x, y, dons, accs, yd, ya, counts = v
@@ -216,16 +268,10 @@ if __name__ == "__main__":
 		})
 
 	print """	
-	height = 4
-	base_size = 14
-	theme_set(theme_bw(base_size=base_size))
-	theme_update(
-		panel.grid = element_blank()
-	)
 
-	pdf('%s', h=height, w=10)
+	pdf("%(out)s", h=height, w=10)
 	grid.newpage()
-	pushViewport(viewport(layout = grid.layout(length(density_list), 1)))
+	pushViewport(viewport(layout = grid.layout(length(density_list)+%(args.gtf)s, 1)))
 
 	for (bam_index in 1:length(density_list)) {
 	
@@ -297,13 +343,19 @@ if __name__ == "__main__":
 	
 		}
 		print(gp, vp=viewport(layout.pos.row = bam_index, layout.pos.col = 1))
-
 	}
 
+	if (%(args.gtf)s == 1) {
+		print(gtfp, vp=viewport(layout.pos.row = bam_index+1, layout.pos.col = 1))
+	}
 	
 
 	dev.off()
-	""" %("tmp.pdf")
+	""" %({
+		"out": "tmp.pdf", 
+		"args.gtf": int(bool(args.gtf)),
+		"height": 6,
+		})
 
 	exit()
 
