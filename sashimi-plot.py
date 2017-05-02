@@ -23,6 +23,8 @@ def define_options():
 		help="Strand specificity: <NONE> <SENSE> <ANTISENSE> <MATE1_SENSE> <MATE2_SENSE> [default=%(default)s]")
 	parser.add_argument("-O", "--overlay", type=int, 
 		help="Index of column with overlay levels (1-based)")
+	parser.add_argument("-C", "--color-factor", type=int, dest="color_factor",
+		help="Index of column with color levels (1-based)")
 	parser.add_argument("--height", type=int, default=6,
 		help="Height of the plot in inches [default=%(default)s]")
 	parser.add_argument("--width", type=int, default=10,
@@ -128,15 +130,16 @@ def read_bam(f, c, s):
 	return a, junctions
 
 
-def read_bam_input(f, overlay):
+def read_bam_input(f, overlay, color):
 	if f.endswith(".bam"):
 		bn = f.strip().split("/")[-1].strip(".bam")
-		yield [(bn, f, None)]
+		yield [(bn, f, None, None)]
 	with open(f) as openf:
 		for line in openf:
 			line_sp = line.strip().split("\t")
 			overlay_level = line_sp[overlay-1] if overlay else None
-			yield line_sp[0], line_sp[1], '"%s"' %(overlay_level)
+			color_level = line_sp[color-1] if color else None
+			yield line_sp[0], line_sp[1], '"%s"' %(overlay_level), '"%s"' %(color_level)
 
 
 def prepare_for_R(a, junctions, c, m):
@@ -274,6 +277,7 @@ def setup_R_script(h, w, b):
 	return s
 
 def density_overlay(d, R_list):
+#	lapply(names(l), function(x) cbind(l[[`x`]], id=x))
 #	setNames(lapply(levels(as.factor(names(v))), function(y) {rbindlist(lapply(v[which(names(v)==y)], function(x) d[[as.character(x)]]))}), levels(as.factor(names(v))))
 	s = """
 	f = data.frame(id=c(%(id)s), fac=rep(c(%(levels)s), c(%(length)s)))
@@ -302,6 +306,19 @@ def plot(R_script):
 	return
 
 
+def colorize(d, p, color_factor):
+	levels = sorted(set(d.itervalues()))
+	n = len(levels)
+	if n > len(p):
+		p = (p*n)[:n]
+	if color_factor:
+		s = "color_list = list(%s)\n" %( ",".join('%s="%s"' %(k, p[levels.index(v)]) for k,v in d.iteritems()) )
+	else:
+		s = "color_list = list(%s)\n" %( ",".join('%s="%s"' %(k, "grey") for k,v in d.iteritems()) )
+	return s
+
+
+
 if __name__ == "__main__":
 
 	parser = define_options()
@@ -314,17 +331,26 @@ if __name__ == "__main__":
 	if args.gtf:
 		annotation = read_gtf(args.gtf, args.coordinates)
 
-	bam_dict, overlay_dict = {"+":{}}, {}
+	bam_dict, overlay_dict, color_dict = {"+":{}}, {}, {}
 	if args.strand != "NONE": bam_dict["-"] = {}
-	for id, bam, overlay_level in read_bam_input(args.bam, args.overlay):
+	for id, bam, overlay_level, color_level in read_bam_input(args.bam, args.overlay, args.color_factor):
 		a, junctions = read_bam(bam, args.coordinates, args.strand)
 		for strand in a:
 		 	bam_dict[strand][id] = prepare_for_R(a[strand], junctions[strand], args.coordinates, args.min_coverage)
-		if overlay_level is not None:
+		if overlay_level != '"None"':
 			overlay_dict.setdefault(overlay_level, []).append(id)
+			if color_level:
+				color_dict.setdefault(overlay_level, overlay_level)
+		if overlay_level == '"None"':
+			color_dict.setdefault(id, color_level)
+
+	
 
 	for strand in bam_dict:	
 		R_script = setup_R_script(args.height, args.width, args.base_size)
+		palette = "#000000", "#00ff00"
+
+		R_script += colorize(color_dict, palette, args.color_factor)
 	
 		arrow_bins = 50
 		if args.gtf:
@@ -367,7 +393,7 @@ if __name__ == "__main__":
 			maxheight = max(d[['y']])
 		
 			# Density plot
-			gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity', alpha=0.3)
+			gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity', fill=color_list[[id]], alpha=1/10)
 		
 			gp = gp + labs(title=id)
 	
