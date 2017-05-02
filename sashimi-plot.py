@@ -19,6 +19,10 @@ def define_options():
 		help="Minimum number of reads supporting a junction to be drawn [default=1]")
 	parser.add_argument("-g", "--gtf", 
 		help="Gtf file with annotation (only exons is enough)")
+	parser.add_argument("-s", "--strand", default="NONE", type=str, 
+		help="Strand specificity: <NONE> <SENSE> <ANTISENSE> <MATE1_SENSE> <MATE2_SENSE> [default=%(default)s]")
+	parser.add_argument("-O", "--overlay", type=int, 
+		help="Index of column with overlay levels")
 #	parser.add_argument("-s", "--smooth", action="store_true", default=False, help="Smooth the signal histogram")
 	return parser
 
@@ -63,16 +67,33 @@ def count_operator(CIGAR_op, CIGAR_len, pos, start, end, a, junctions, line):
 	return pos
 
 
+def flip_read(s, samflag):
+	if s == "NONE" or s == "SENSE":
+		return 0
+	if s == "ANTISENSE":
+		return 1
+	if s == "MATE1_SENSE":
+		if int(samflag) & 64:
+			return 0
+		if int(samflag) & 128:
+			return 1
+	if s == "MATE2_SENSE":
+		if int(samflag) & 64:
+			return 1
+		if int(samflag) & 128:
+			return 0
 
-def read_bam(f, c):
+
+def read_bam(f, c, s):
 
 	chr, start, end = parse_coordinates(c)
 
-	# Initialize coverage array 
-	a = [0] * (end - start)
-
-	# Junction dictionary
-	junctions = dict()
+	# Initialize coverage array and junction dict
+	a = {"+" : [0] * (end - start)}
+	junctions = {"+": {}}
+	if s != "NONE":
+		a["-"] = [0] * (end - start)
+		junctions["-"] = {}
 
 	p = sp.Popen("samtools view %s %s " %(f, c), shell=True, stdout=sp.PIPE)
 	for line in p.communicate()[0].strip().split("\n"):
@@ -84,6 +105,9 @@ def read_bam(f, c):
 		if any(map(lambda x: x in CIGAR, ["H", "P", "X", "="])): 
 			continue
 
+		read_strand = ["+", "-"][flip_read(s, samflag) ^ bool(int(samflag) & 16)]
+		if s == "NONE": read_strand = "+"
+
 		CIGAR_lens = re.split("[MIDNS]", CIGAR)[:-1]
 		CIGAR_ops = re.split("[0-9]+", CIGAR)[1:]
 
@@ -91,7 +115,7 @@ def read_bam(f, c):
 
 		for n, CIGAR_op in enumerate(CIGAR_ops):
 			CIGAR_len = int(CIGAR_lens[n])
-			pos = count_operator(CIGAR_op, CIGAR_len, pos, start, end, a, junctions, line=line)
+			pos = count_operator(CIGAR_op, CIGAR_len, pos, start, end, a[read_strand], junctions[read_strand], line=line)
 
 	p.stdout.close()
 	
@@ -225,14 +249,20 @@ if __name__ == "__main__":
 
 	bam_dict = {}
 	for id, bam in read_bam_input(args.bam):
-		a, junctions = read_bam(bam, args.coordinates)
-	 	bam_dict[id] = prepare_for_R(a, junctions, args.coordinates, args.min_coverage)
+		a, junctions = read_bam(bam, args.coordinates, args.strand)
+	 	bam_dict[id] = prepare_for_R(a["+"], junctions["+"], args.coordinates, args.min_coverage)
 	
 
 	print """
 	library(ggplot2)
 	library(grid)
 	library(data.table)
+
+	scale_lwd = function(r) {
+		lmin = 0.1
+		lmax = 4
+		return( r*(lmax-lmin)+lmin )
+	}
 
 	height = 6
 	base_size = 14
@@ -268,6 +298,8 @@ if __name__ == "__main__":
 		})
 
 	print """	
+#	setNames(lapply(levels(f$fac), function(y) {rbindlist(lapply(subset(f, fac==y)$id, function(x) d[[as.character(x)]]))}), levels(f$fac))
+#	setNames(lapply(levels(as.factor(names(v))), function(y) {rbindlist(lapply(v[which(names(v)==y)], function(x) d[[as.character(x)]]))}), levels(as.factor(names(v))))
 
 	pdf("%(out)s", h=height, w=10)
 	grid.newpage()
@@ -280,13 +312,6 @@ if __name__ == "__main__":
 		junctions = junction_list[[id]]
 	
 		maxheight = max(d[['y']])
-	
-		scale_lwd = function(r) {
-			lmin = 0.1
-			lmax = 4
-			return( r*(lmax-lmin)+lmin )
-		}
-	
 	
 		# Density plot
 		gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity')
