@@ -135,8 +135,8 @@ def read_bam_input(f, overlay):
 	with open(f) as openf:
 		for line in openf:
 			line_sp = line.strip().split("\t")
-			overlay = line_sp[overlay-1] if overlay else None
-			yield line_sp[0], line_sp[1], '"%s"' %(overlay)
+			overlay_level = line_sp[overlay-1] if overlay else None
+			yield line_sp[0], line_sp[1], '"%s"' %(overlay_level)
 
 
 def prepare_for_R(a, junctions, c, m):
@@ -275,7 +275,7 @@ def setup_R_script(h, w, b):
 
 def density_overlay(d, R_list):
 #	setNames(lapply(levels(as.factor(names(v))), function(y) {rbindlist(lapply(v[which(names(v)==y)], function(x) d[[as.character(x)]]))}), levels(as.factor(names(v))))
-	print """
+	s = """
 	f = data.frame(id=c(%(id)s), fac=rep(c(%(levels)s), c(%(length)s)))
 	%(R_list)s = setNames(
 		lapply(
@@ -291,7 +291,7 @@ def density_overlay(d, R_list):
 		"length": ",".join(map(str, map(len, d.values()))),
 		"R_list": R_list,
 	})
-	return
+	return s
 
 
 def plot(R_script):
@@ -349,8 +349,8 @@ if __name__ == "__main__":
 			})
 	
 		if args.overlay:
-			density_overlay(overlay_dict, "density_list")
-			density_overlay(overlay_dict, "junction_list")
+			R_script += density_overlay(overlay_dict, "density_list")
+			R_script += density_overlay(overlay_dict, "junction_list")
 	
 		R_script += """
 	
