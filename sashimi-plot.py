@@ -23,6 +23,12 @@ def define_options():
 		help="Strand specificity: <NONE> <SENSE> <ANTISENSE> <MATE1_SENSE> <MATE2_SENSE> [default=%(default)s]")
 	parser.add_argument("-O", "--overlay", type=int, 
 		help="Index of column with overlay levels (1-based)")
+	parser.add_argument("--height", type=int, default=6,
+		help="Height of the plot in inches [default=%(default)s]")
+	parser.add_argument("--width", type=int, default=10,
+		help="Width of the plot in inches [default=%(default)s]")
+	parser.add_argument("--base-size", type=int, default=14, dest="base_size",
+		help="Base character size of the plot in pch [default=%(default)s]")
 #	parser.add_argument("-s", "--smooth", action="store_true", default=False, help="Smooth the signal histogram")
 	return parser
 
@@ -186,7 +192,7 @@ def read_gtf(f, c):
 def gtf_for_ggplot(annotation, c, arrow_bins):
 	chr, start, end = parse_coordinates(c)
 	arrow_space = (end - start)/arrow_bins
-	print """
+	s = """
 
 	# data table with exons
 	ann = data.table(
@@ -235,7 +241,37 @@ def gtf_for_ggplot(annotation, c, arrow_bins):
 		"strand" : ",".join(map(str, (v[2] for vs in annotation.itervalues() for v in vs))),
 		"arrow_space" : arrow_space,
 	})
-	return 
+	return s
+
+
+def setup_R_script(h, w, b):
+	s = """
+	library(ggplot2)
+	library(grid)
+	library(data.table)
+
+	scale_lwd = function(r) {
+		lmin = 0.1
+		lmax = 4
+		return( r*(lmax-lmin)+lmin )
+	}
+
+	height = %(h)s
+	width = %(w)s
+	base_size = %(b)s
+	theme_set(theme_bw(base_size=base_size))
+	theme_update(
+		panel.grid = element_blank()
+	)
+
+	density_list = list()
+	junction_list = list()
+	""" %({
+		'h': h,
+		'w': w,
+		'b': b,
+	})
+	return s
 
 def density_overlay(d, R_list):
 #	setNames(lapply(levels(as.factor(names(v))), function(y) {rbindlist(lapply(v[which(names(v)==y)], function(x) d[[as.character(x)]]))}), levels(as.factor(names(v))))
@@ -258,6 +294,13 @@ def density_overlay(d, R_list):
 	return
 
 
+def plot(R_script):
+	p = sp.Popen("R --vanilla --slave", shell=True, stdin=sp.PIPE)
+	p.communicate(input=R_script)
+	p.stdin.close()
+	p.wait()
+	return
+
 
 if __name__ == "__main__":
 
@@ -271,144 +314,130 @@ if __name__ == "__main__":
 	if args.gtf:
 		annotation = read_gtf(args.gtf, args.coordinates)
 
-	bam_dict, overlay_dict = {}, {}
+	bam_dict, overlay_dict = {"+":{}}, {}
+	if args.strand != "NONE": bam_dict["-"] = {}
 	for id, bam, overlay_level in read_bam_input(args.bam, args.overlay):
 		a, junctions = read_bam(bam, args.coordinates, args.strand)
-	 	bam_dict[id] = prepare_for_R(a["+"], junctions["+"], args.coordinates, args.min_coverage)
+		for strand in a:
+		 	bam_dict[strand][id] = prepare_for_R(a[strand], junctions[strand], args.coordinates, args.min_coverage)
 		if overlay_level is not None:
 			overlay_dict.setdefault(overlay_level, []).append(id)
 
-	print """
-	library(ggplot2)
-	library(grid)
-	library(data.table)
-
-	scale_lwd = function(r) {
-		lmin = 0.1
-		lmax = 4
-		return( r*(lmax-lmin)+lmin )
-	}
-
-	height = 6
-	base_size = 14
-	theme_set(theme_bw(base_size=base_size))
-	theme_update(
-		panel.grid = element_blank()
-	)
-
-	density_list = list()
-	junction_list = list()
-	"""
-
-	arrow_bins = 50
-	if args.gtf:
-		gtf_for_ggplot(annotation, args.coordinates, arrow_bins)
+	for strand in bam_dict:	
+		R_script = setup_R_script(args.height, args.width, args.base_size)
+	
+		arrow_bins = 50
+		if args.gtf:
+			R_script += gtf_for_ggplot(annotation, args.coordinates, arrow_bins)
+			
+			
+		for k, v in bam_dict[strand].iteritems():
+			x, y, dons, accs, yd, ya, counts = v
+			
+			R_script += """
+			density_list$%(id)s = data.frame(x=c(%(x)s), y=c(%(y)s))
+			junction_list$%(id)s = data.frame(x=c(%(dons)s), xend=c(%(accs)s), y=c(%(yd)s), yend=c(%(ya)s), count=c(%(counts)s))
+			""" %({
+				"id": k,
+				'x' : ",".join(map(str, x)),
+				'y' : ",".join(map(str, y)),
+				'dons' : ",".join(map(str, dons)),
+				'accs' : ",".join(map(str, accs)),
+				'yd' : ",".join(map(str, yd)),
+				'ya' : ",".join(map(str, ya)),
+				'counts' : ",".join(map(str, counts)),
+			})
+	
+		if args.overlay:
+			density_overlay(overlay_dict, "density_list")
+			density_overlay(overlay_dict, "junction_list")
+	
+		R_script += """
+	
+		pdf("%(out)s", h=height, w=10)
+		grid.newpage()
+		pushViewport(viewport(layout = grid.layout(length(density_list)+%(args.gtf)s, 1)))
+	
+		for (bam_index in 1:length(density_list)) {
+		
+			id = names(density_list)[bam_index]
+			d = density_list[[id]]
+			junctions = junction_list[[id]]
+		
+			maxheight = max(d[['y']])
+		
+			# Density plot
+			gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity', alpha=0.3)
+		
+			gp = gp + labs(title=id)
+	
+			j_tot_counts = sum(junctions[['count']])
+		
+			for (i in 1:nrow(junctions)) {
+		
+				j = as.numeric(junctions[i,])
+		
+				# Find intron midpoint 
+				xmid = round(mean(j[1:2]), 1)
+				ymid = max(j[3:4]) * 1.1
+		
+				# Thickness of the arch
+				lwd = scale_lwd(j[5]/j_tot_counts)
+		
+				curve_par = gpar(lwd=lwd)
+		
+				# Choose position of the arch (top or bottom)
+				nss = length(match(j[1], junctions[,1]))
+				if (nss%%%%2 == 0) {  #bottom
+					ymid = -0.4 * maxheight
+					# Draw the archs
+					# Left
+					curve = xsplineGrob(x=c(0, 0, 1, 1), y=c(1, 0, 0, 0), shape=1, gp=curve_par)
+					gp = gp + annotation_custom(grob = curve, j[1], xmid, 0, ymid)
+					# Right
+					curve = xsplineGrob(x=c(1, 1, 0, 0), y=c(1, 0, 0, 0), shape=1, gp=curve_par)
+					gp = gp + annotation_custom(grob = curve, xmid, j[2], 0, ymid)
+				} 
+		
+				if (nss%%%%2 != 0) {  #top
+					# Draw the archs
+					# Left
+					curve = xsplineGrob(x=c(0, 0, 1, 1), y=c(0, 1, 1, 1), shape=1, gp=curve_par)
+					gp = gp + annotation_custom(grob = curve, j[1], xmid, j[3], ymid)
+					# Right
+					curve = xsplineGrob(x=c(1, 1, 0, 0), y=c(0, 1, 1, 1), shape=1, gp=curve_par)
+					gp = gp + annotation_custom(grob = curve, xmid, j[2], j[4], ymid)
+			
+					gp = gp + annotate("label", x = xmid, y = ymid, label = j[5], 
+						vjust=0.5, hjust=0.5, label.padding=unit(0.01, "lines"), 
+						label.size=NA, size=(base_size*0.352777778)*0.6
+					)
+				}
+		
+	
+		#		gp = gp + annotation_custom(grob = rectGrob(x=0, y=0, gp=gpar(col="red"), just=c("left","bottom")), xmid, j[2], j[4], ymid)
+		#		gp = gp + annotation_custom(grob = rectGrob(x=0, y=0, gp=gpar(col="green"), just=c("left","bottom")), j[1], xmid, j[3], ymid)
 		
 		
-	for k, v in bam_dict.iteritems():
-		x, y, dons, accs, yd, ya, counts = v
-		
-		print """
-		density_list$%(id)s = data.frame(x=c(%(x)s), y=c(%(y)s))
-		junction_list$%(id)s = data.frame(x=c(%(dons)s), xend=c(%(accs)s), y=c(%(yd)s), yend=c(%(ya)s), count=c(%(counts)s))
-		""" %({
-			"id": k,
-			'x' : ",".join(map(str, x)),
-			'y' : ",".join(map(str, y)),
-			'dons' : ",".join(map(str, dons)),
-			'accs' : ",".join(map(str, accs)),
-			'yd' : ",".join(map(str, yd)),
-			'ya' : ",".join(map(str, ya)),
-			'counts' : ",".join(map(str, counts)),
-		})
-
-	if args.overlay:
-		density_overlay(overlay_dict, "density_list")
-		density_overlay(overlay_dict, "junction_list")
-
-	print """	
-
-	pdf("%(out)s", h=height, w=10)
-	grid.newpage()
-	pushViewport(viewport(layout = grid.layout(length(density_list)+%(args.gtf)s, 1)))
-
-	for (bam_index in 1:length(density_list)) {
-	
-		id = names(density_list)[bam_index]
-		d = density_list[[id]]
-		junctions = junction_list[[id]]
-	
-		maxheight = max(d[['y']])
-	
-		# Density plot
-		gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity', alpha=0.3)
-	
-		gp = gp + labs(title=id)
-
-		j_tot_counts = sum(junctions[['count']])
-	
-		for (i in 1:nrow(junctions)) {
-	
-			j = as.numeric(junctions[i,])
-	
-			# Find intron midpoint 
-			xmid = round(mean(j[1:2]), 1)
-			ymid = max(j[3:4]) * 1.1
-	
-			# Thickness of the arch
-			lwd = scale_lwd(j[5]/j_tot_counts)
-	
-			curve_par = gpar(lwd=lwd)
-	
-			# Choose position of the arch (top or bottom)
-			nss = length(match(j[1], junctions[,1]))
-			if (nss%%%%2 == 0) {  #bottom
-				ymid = -0.4 * maxheight
-				# Draw the archs
-				# Left
-				curve = xsplineGrob(x=c(0, 0, 1, 1), y=c(1, 0, 0, 0), shape=1, gp=curve_par)
-				gp = gp + annotation_custom(grob = curve, j[1], xmid, 0, ymid)
-				# Right
-				curve = xsplineGrob(x=c(1, 1, 0, 0), y=c(1, 0, 0, 0), shape=1, gp=curve_par)
-				gp = gp + annotation_custom(grob = curve, xmid, j[2], 0, ymid)
-			} 
-	
-			if (nss%%%%2 != 0) {  #top
-				# Draw the archs
-				# Left
-				curve = xsplineGrob(x=c(0, 0, 1, 1), y=c(0, 1, 1, 1), shape=1, gp=curve_par)
-				gp = gp + annotation_custom(grob = curve, j[1], xmid, j[3], ymid)
-				# Right
-				curve = xsplineGrob(x=c(1, 1, 0, 0), y=c(0, 1, 1, 1), shape=1, gp=curve_par)
-				gp = gp + annotation_custom(grob = curve, xmid, j[2], j[4], ymid)
-		
-				gp = gp + annotate("label", x = xmid, y = ymid, label = j[5], 
-					vjust=0.5, hjust=0.5, label.padding=unit(0.01, "lines"), 
-					label.size=NA, size=(base_size*0.352777778)*0.6
-				)
 			}
-	
-
-	#		gp = gp + annotation_custom(grob = rectGrob(x=0, y=0, gp=gpar(col="red"), just=c("left","bottom")), xmid, j[2], j[4], ymid)
-	#		gp = gp + annotation_custom(grob = rectGrob(x=0, y=0, gp=gpar(col="green"), just=c("left","bottom")), j[1], xmid, j[3], ymid)
-	
-	
+			print(gp, vp=viewport(layout.pos.row = bam_index, layout.pos.col = 1))
 		}
-		print(gp, vp=viewport(layout.pos.row = bam_index, layout.pos.col = 1))
-	}
-
-	if (%(args.gtf)s == 1) {
-		print(gtfp, vp=viewport(layout.pos.row = bam_index+1, layout.pos.col = 1))
-	}
 	
-
-	dev.off()
-	""" %({
-		"out": "tmp.pdf", 
-		"args.gtf": int(bool(args.gtf)),
-		"height": 6,
-		})
-
+		if (%(args.gtf)s == 1) {
+			print(gtfp, vp=viewport(layout.pos.row = bam_index+1, layout.pos.col = 1))
+		}
+		
+	
+		dev.off()
+	
+		""" %({
+			"out": "tmp_%s.pdf" %strand, 
+			"args.gtf": int(bool(args.gtf)),
+			"height": 6,
+			})
+	
+	
+		plot(R_script)
 	exit()
 
 
