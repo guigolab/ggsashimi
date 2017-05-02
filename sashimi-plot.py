@@ -22,7 +22,7 @@ def define_options():
 	parser.add_argument("-s", "--strand", default="NONE", type=str, 
 		help="Strand specificity: <NONE> <SENSE> <ANTISENSE> <MATE1_SENSE> <MATE2_SENSE> [default=%(default)s]")
 	parser.add_argument("-O", "--overlay", type=int, 
-		help="Index of column with overlay levels")
+		help="Index of column with overlay levels (1-based)")
 #	parser.add_argument("-s", "--smooth", action="store_true", default=False, help="Smooth the signal histogram")
 	return parser
 
@@ -122,12 +122,15 @@ def read_bam(f, c, s):
 	return a, junctions
 
 
-def read_bam_input(f):
+def read_bam_input(f, overlay):
 	if f.endswith(".bam"):
 		bn = f.strip().split("/")[-1].strip(".bam")
-		return [(bn, f)]
+		yield [(bn, f, None)]
 	with open(f) as openf:
-		return list(line.strip().split("\t") for line in openf)
+		for line in openf:
+			line_sp = line.strip().split("\t")
+			overlay = line_sp[overlay-1] if overlay else None
+			yield line_sp[0], line_sp[1], '"%s"' %(overlay)
 
 
 def prepare_for_R(a, junctions, c, m):
@@ -234,6 +237,27 @@ def gtf_for_ggplot(annotation, c, arrow_bins):
 	})
 	return 
 
+def density_overlay(d, R_list):
+#	setNames(lapply(levels(as.factor(names(v))), function(y) {rbindlist(lapply(v[which(names(v)==y)], function(x) d[[as.character(x)]]))}), levels(as.factor(names(v))))
+	print """
+	f = data.frame(id=c(%(id)s), fac=rep(c(%(levels)s), c(%(length)s)))
+	%(R_list)s = setNames(
+		lapply(
+			levels(f$fac), function(y) {
+				rbindlist(lapply(subset(f, fac==y)$id, function(x) %(R_list)s[[as.character(x)]]))
+			}
+		), 
+		levels(f$fac)
+	)
+	""" %({
+		"levels": ",".join(d.keys()),
+		"id": ",".join(map(str, ('"%s"' %(v) for vs in d.itervalues() for v in vs))),
+		"length": ",".join(map(str, map(len, d.values()))),
+		"R_list": R_list,
+	})
+	return
+
+
 
 if __name__ == "__main__":
 
@@ -247,11 +271,12 @@ if __name__ == "__main__":
 	if args.gtf:
 		annotation = read_gtf(args.gtf, args.coordinates)
 
-	bam_dict = {}
-	for id, bam in read_bam_input(args.bam):
+	bam_dict, overlay_dict = {}, {}
+	for id, bam, overlay_level in read_bam_input(args.bam, args.overlay):
 		a, junctions = read_bam(bam, args.coordinates, args.strand)
 	 	bam_dict[id] = prepare_for_R(a["+"], junctions["+"], args.coordinates, args.min_coverage)
-	
+		if overlay_level is not None:
+			overlay_dict.setdefault(overlay_level, []).append(id)
 
 	print """
 	library(ggplot2)
@@ -297,9 +322,11 @@ if __name__ == "__main__":
 			'counts' : ",".join(map(str, counts)),
 		})
 
+	if args.overlay:
+		density_overlay(overlay_dict, "density_list")
+		density_overlay(overlay_dict, "junction_list")
+
 	print """	
-#	setNames(lapply(levels(f$fac), function(y) {rbindlist(lapply(subset(f, fac==y)$id, function(x) d[[as.character(x)]]))}), levels(f$fac))
-#	setNames(lapply(levels(as.factor(names(v))), function(y) {rbindlist(lapply(v[which(names(v)==y)], function(x) d[[as.character(x)]]))}), levels(as.factor(names(v))))
 
 	pdf("%(out)s", h=height, w=10)
 	grid.newpage()
@@ -314,7 +341,7 @@ if __name__ == "__main__":
 		maxheight = max(d[['y']])
 	
 		# Density plot
-		gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity')
+		gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity', alpha=0.3)
 	
 		gp = gp + labs(title=id)
 
