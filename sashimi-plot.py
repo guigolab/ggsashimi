@@ -362,7 +362,7 @@ if __name__ == "__main__":
 	parser = define_options()
 	args = parser.parse_args()
 	
-	args.coordinates = "chrX:9609491-9612406"
+#	args.coordinates = "chrX:9609491-9612406"
 #	args.coordinates = "chrX:9609491-9610000"
 #	args.bam = "/nfs/no_backup/rg/epalumbo/projects/tg/work/8b/8b0ac8705f37fd772a06ab7db89f6b/2A_m4_n10_toGenome.bam"
 
@@ -460,13 +460,13 @@ if __name__ == "__main__":
 				# Thickness of the arch
 				lwd = scale_lwd(j[5]/j_tot_counts)
 		
-				curve_par = gpar(lwd=lwd)
+				curve_par = gpar(lwd=lwd, col=color_list[[id]])
 		
 				# Choose position of the arch (top or bottom)
 				nss = length(match(j[1], junctions[,1]))
 				if (nss%%%%2 == 0) {  #bottom
 					ymid = -0.4 * maxheight
-					# Draw the archs
+					# Draw the arcs
 					# Left
 					curve = xsplineGrob(x=c(0, 0, 1, 1), y=c(1, 0, 0, 0), shape=1, gp=curve_par)
 					gp = gp + annotation_custom(grob = curve, j[1], xmid, 0, ymid)
@@ -476,7 +476,7 @@ if __name__ == "__main__":
 				} 
 		
 				if (nss%%%%2 != 0) {  #top
-					# Draw the archs
+					# Draw the arcs
 					# Left
 					curve = xsplineGrob(x=c(0, 0, 1, 1), y=c(0, 1, 1, 1), shape=1, gp=curve_par)
 					gp = gp + annotation_custom(grob = curve, j[1], xmid, j[3], ymid)
