@@ -176,7 +176,6 @@ def intersect_introns(data):
 	data = sorted(data)
 	it = iter(data)
 	a, b = next(it)
-	print a,b
 	for c, d in it:
 		if b > c:  # Use `if b > c` if you want (1,2), (2,3) not to be
 			        # treated as intersection.
@@ -186,6 +185,27 @@ def intersect_introns(data):
 			yield a, b
 			a, b = c, d
 	yield a, b
+
+
+def shrink_annotation(ann):
+	return
+
+
+def shrink_density(x, y, introns):
+	new_x, new_y = [], []
+	shift = 0
+	start = 0
+	# introns are already sorted by coordinates
+	for a,b in introns:
+		end = x.index(a)+1
+		new_x += [int(i-shift) for i in x[start:end]]
+		new_y += y[start:end]
+		start = x.index(b)
+		l = (b-a)
+		shift += l-l**0.7
+	new_x += [i-shift for i in x[start:]]
+	new_y += y[start:]
+	return new_x, new_y
 
 
 def read_gtf(f, c):
@@ -370,7 +390,7 @@ if __name__ == "__main__":
 			intersected_introns = list(intersect_introns(introns))
 
 		R_script = setup_R_script(args.height, args.width, args.base_size)
-		palette = "#000000", "#00ff00"
+		palette = "#ff0000", "#000000", "#00ff00"
 
 		R_script += colorize(color_dict, palette, args.color_factor)
 	
@@ -383,7 +403,10 @@ if __name__ == "__main__":
 			
 		for k, v in bam_dict[strand].iteritems():
 			x, y, dons, accs, yd, ya, counts = v
-			
+			if args.shrink:
+				x, y = shrink_density(x, y, intersected_introns)
+#				dons, accs, yd, ya, counts = [], [], [], [], []			
+
 			R_script += """
 			density_list$%(id)s = data.frame(x=c(%(x)s), y=c(%(y)s))
 			junction_list$%(id)s = data.frame(x=c(%(dons)s), xend=c(%(accs)s), y=c(%(yd)s), yend=c(%(ya)s), count=c(%(counts)s))
@@ -397,7 +420,7 @@ if __name__ == "__main__":
 				'ya' : ",".join(map(str, ya)),
 				'counts' : ",".join(map(str, counts)),
 			})
-	
+
 		if args.overlay:
 			R_script += density_overlay(overlay_dict, "density_list")
 			R_script += density_overlay(overlay_dict, "junction_list")
@@ -417,13 +440,16 @@ if __name__ == "__main__":
 			maxheight = max(d[['y']])
 		
 			# Density plot
-			gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity', fill=color_list[[id]], alpha=1/10)
-		
+			gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity', fill=color_list[[id]], alpha=1/2)
 			gp = gp + labs(title=id)
 	
-			j_tot_counts = sum(junctions[['count']])
-		
-			for (i in 1:nrow(junctions)) {
+
+			if (nrow(junctions)>0) {row_i = 1:nrow(junctions)} else {row_i = c()}
+
+
+			for (i in row_i) {
+
+				j_tot_counts = sum(junctions[['count']])
 		
 				j = as.numeric(junctions[i,])
 		
