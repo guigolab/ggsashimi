@@ -21,6 +21,8 @@ def define_options():
 		help="Gtf file with annotation (only exons is enough)")
 	parser.add_argument("-s", "--strand", default="NONE", type=str, 
 		help="Strand specificity: <NONE> <SENSE> <ANTISENSE> <MATE1_SENSE> <MATE2_SENSE> [default=%(default)s]")
+	parser.add_argument("--shrink", action="store_true",  
+		help="Shrink the junctions by a factor for nicer display [default=%(default)s]")
 	parser.add_argument("-O", "--overlay", type=int, 
 		help="Index of column with overlay levels (1-based)")
 	parser.add_argument("-C", "--color-factor", type=int, dest="color_factor",
@@ -168,6 +170,22 @@ def prepare_for_R(a, junctions, c, m):
 		ya.append( a[ acc - start +1 ])
 
 	return x, y, dons, accs, yd, ya, counts
+
+
+def intersect_introns(data):
+	data = sorted(data)
+	it = iter(data)
+	a, b = next(it)
+	print a,b
+	for c, d in it:
+		if b > c:  # Use `if b > c` if you want (1,2), (2,3) not to be
+			        # treated as intersection.
+			b = min(b, d)
+			a = max(a, c)
+		else:
+			yield a, b
+			a, b = c, d
+	yield a, b
 
 
 def read_gtf(f, c):
@@ -347,6 +365,10 @@ if __name__ == "__main__":
 	
 
 	for strand in bam_dict:	
+		if args.shrink:
+			introns = (v for vs in bam_dict[strand].values() for v in zip(vs[2], vs[3]))
+			intersected_introns = list(intersect_introns(introns))
+
 		R_script = setup_R_script(args.height, args.width, args.base_size)
 		palette = "#000000", "#00ff00"
 
@@ -354,6 +376,8 @@ if __name__ == "__main__":
 	
 		arrow_bins = 50
 		if args.gtf:
+#			if args.shrink:
+#				annotation = shrink_annotation(annotation)
 			R_script += gtf_for_ggplot(annotation, args.coordinates, arrow_bins)
 			
 			
