@@ -408,8 +408,8 @@ if __name__ == "__main__":
 #				dons, accs, yd, ya, counts = [], [], [], [], []			
 
 			R_script += """
-			density_list$%(id)s = data.frame(x=c(%(x)s), y=c(%(y)s))
-			junction_list$%(id)s = data.frame(x=c(%(dons)s), xend=c(%(accs)s), y=c(%(yd)s), yend=c(%(ya)s), count=c(%(counts)s))
+			density_list$%(id)s = data.table(x=c(%(x)s), y=c(%(y)s))
+			junction_list$%(id)s = data.table(x=c(%(dons)s), xend=c(%(accs)s), y=c(%(yd)s), yend=c(%(ya)s), count=c(%(counts)s))
 			""" %({
 				"id": k,
 				'x' : ",".join(map(str, x)),
