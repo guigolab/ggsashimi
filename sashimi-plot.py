@@ -207,6 +207,25 @@ def shrink_density(x, y, introns):
 	new_y += y[start:]
 	return new_x, new_y
 
+def shrink_junctions(dons, accs, introns):
+	new_dons, new_accs = [0]*len(dons), [0]*len(accs)
+	shift_acc = 0 
+	shift_don = 0
+	s = set()
+	junctions = zip(dons, accs)
+	for a,b in introns:
+		l = b - a
+		shift_acc += l-int(l**0.7)
+		for i, (don, acc) in enumerate(junctions):
+			if a >= don and b <= acc:
+				if (don,acc) not in s:
+					new_dons[i] = don - shift_don
+					new_accs[i] = acc - shift_acc
+				else:
+					new_accs[i] = acc - shift_acc
+				s.add((don,acc))
+		shift_don = shift_acc
+	return new_dons, new_accs
 
 def read_gtf(f, c):
 	exons = {}
@@ -223,7 +242,7 @@ def read_gtf(f, c):
 			if not (start < exon_start < end or start < exon_end < end):
 				continue
 
-			d = dict(kv.split(" ") for kv in tags.strip(";").split("; "))
+			d = dict(kv.strip().split(" ") for kv in tags.strip(";").split("; "))
 			transcript_id = d["transcript_id"]
 			strand = '"' + strand + '"'
 			exons.setdefault(transcript_id, []).append((max(exon_start, start), min(end, exon_end), strand))
@@ -264,8 +283,8 @@ def gtf_for_ggplot(annotation, c, arrow_bins):
 		txarrows = rbind(
 			txarrows,
 			txlines[V3=="-", list(
-				seq(V1,V2-%(arrow_space)s,by=%(arrow_space)s), 
-				seq(V1,V2-%(arrow_space)s,by=%(arrow_space)s)-1
+				seq(V1,max(V1+1, V2-%(arrow_space)s), by=%(arrow_space)s), 
+				seq(V1,max(V1+1, V2-%(arrow_space)s), by=%(arrow_space)s)-1
 				), by=tx
 			]
 		)
@@ -405,11 +424,12 @@ if __name__ == "__main__":
 			x, y, dons, accs, yd, ya, counts = v
 			if args.shrink:
 				x, y = shrink_density(x, y, intersected_introns)
+				dons, accs = shrink_junctions(dons, accs, intersected_introns)
 #				dons, accs, yd, ya, counts = [], [], [], [], []			
 
 			R_script += """
-			density_list$%(id)s = data.table(x=c(%(x)s), y=c(%(y)s))
-			junction_list$%(id)s = data.table(x=c(%(dons)s), xend=c(%(accs)s), y=c(%(yd)s), yend=c(%(ya)s), count=c(%(counts)s))
+			density_list$%(id)s = data.frame(x=c(%(x)s), y=c(%(y)s))
+			junction_list$%(id)s = data.frame(x=c(%(dons)s), xend=c(%(accs)s), y=c(%(yd)s), yend=c(%(ya)s), count=c(%(counts)s))
 			""" %({
 				"id": k,
 				'x' : ",".join(map(str, x)),
