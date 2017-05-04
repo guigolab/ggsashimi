@@ -229,24 +229,40 @@ def shrink_junctions(dons, accs, introns):
 
 def read_gtf(f, c):
 	exons = {}
+	transcripts = {}
+	introns = {}
 	chr, start, end = parse_coordinates(c)
 	with open(f) as openf:
 		for line in openf:
+			if line.startswith("#"):
+				continue
 			el_chr, ann, el, el_start, el_end, score1, strand, score2, tags = line.strip().split("\t")
 			if el_chr != chr:
 				continue
-			if el != "exon":
-				continue
-			exon_start, exon_end = int(el_start), int(el_end)
-			# Ignore elements not included in the region
-			if not (start < exon_start < end or start < exon_end < end):
-				continue
-
 			d = dict(kv.strip().split(" ") for kv in tags.strip(";").split("; "))
 			transcript_id = d["transcript_id"]
+			el_start, el_end = map(int, (el_start, el_end))
 			strand = '"' + strand + '"'
-			exons.setdefault(transcript_id, []).append((max(exon_start, start), min(end, exon_end), strand))
-	return exons
+			if el == "transcript":
+				if (el_end > start and el_start < end):
+					transcripts[transcript_id] = max(start, el_start), min(end, el_end)
+				continue
+			if el == "exon":
+				if (start < el_start < end or start < el_end < end):
+					exons.setdefault(transcript_id, []).append((max(el_start, start), min(end, el_end), strand))
+
+	for tx, (tx_start,tx_end) in transcripts.iteritems():
+		intron_start = tx_start
+		for ex_start, ex_end, strand in sorted(exons[tx]):
+			intron_end = ex_start
+			if tx_start < ex_start:
+				introns.setdefault(tx, []).append((intron_start, intron_end, strand))
+			intron_start = ex_end
+		if tx_end > ex_end:
+			introns.setdefault(tx, []).append((intron_start, tx_end, strand))
+					
+	d = {'transcripts': transcripts, 'exons': exons, 'introns': introns}
+	return d
 
 
 def gtf_for_ggplot(annotation, c, arrow_bins):
@@ -255,50 +271,68 @@ def gtf_for_ggplot(annotation, c, arrow_bins):
 	s = """
 
 	# data table with exons
-	ann = data.table(
-		tx = rep(c(%(tx)s), c(%(n_exons)s)), 
-		exon_start = c(%(exon_start)s),
-		exon_end = c(%(exon_end)s),
-		strand = c(%(strand)s)
+	ann_list = list(
+		'exons' = data.table(
+			tx = rep(c(%(tx_exons)s), c(%(n_exons)s)), 
+			start = c(%(exon_start)s),
+			end = c(%(exon_end)s),
+			strand = c(%(strand)s)
+		),
+		'introns' = data.table(
+			tx = rep(c(%(tx_introns)s), c(%(n_introns)s)), 
+			start = c(%(intron_start)s),
+			end = c(%(intron_end)s),
+			strand = c(%(strand)s)
+		)
 	)
-	
-	# Lines for transcripts (introns)
-	txlines = ann[, list(min(exon_start), max(exon_end), unique(strand)), by=tx]
 
-	# Create data table for strand arrows
-	txarrows = data.table()
-	# Add right-pointing arrows for plus strand
-	if ("+" %%in%% txlines$V3) {
-		txarrows = rbind(
-			txarrows,
-			txlines[V3=="+", list(
-				seq(V1+%(arrow_space)s,V2,by=%(arrow_space)s)-1, 
-				seq(V1+%(arrow_space)s,V2,by=%(arrow_space)s)
-				), by=tx
-			]
-		)
-	}
-	# Add left-pointing arrows for minus strand
-	if ("-" %%in%% txlines$V3) {
-		txarrows = rbind(
-			txarrows,
-			txlines[V3=="-", list(
-				seq(V1,max(V1+1, V2-%(arrow_space)s), by=%(arrow_space)s), 
-				seq(V1,max(V1+1, V2-%(arrow_space)s), by=%(arrow_space)s)-1
-				), by=tx
-			]
-		)
-	}
-	gtfp = ggplot(data=txlines) + geom_segment(aes(x=V1, xend=V2, y=tx, yend=tx))
-	gtfp = gtfp + geom_segment(data=txarrows, aes(x=V1,xend=V2,y=tx,yend=tx), arrow=arrow(length=unit(0.05,"npc")))
-	gtfp = gtfp + geom_segment(data=ann, aes(x=exon_start, xend=exon_end, y=tx, yend=tx), size=4)
+
+#	# Lines for transcripts (introns)
+#	txlines = ann[, list(min(exon_start), max(exon_end), unique(strand)), by=tx]
+#
+#	# Create data table for strand arrows
+#	txarrows = data.table()
+#	# Add right-pointing arrows for plus strand
+#	if ("+" %%in%% txlines$V3) {
+#		txarrows = rbind(
+#			txarrows,
+#			txlines[V3=="+", list(
+#				seq(V1+%(arrow_space)s,V2,by=%(arrow_space)s)-1, 
+#				seq(V1+%(arrow_space)s,V2,by=%(arrow_space)s)
+#				), by=tx
+#			]
+#		)
+#	}
+#	# Add left-pointing arrows for minus strand
+#	if ("-" %%in%% txlines$V3) {
+#		txarrows = rbind(
+#			txarrows,
+#			txlines[V3=="-", list(
+#				seq(V1,max(V1+1, V2-%(arrow_space)s), by=%(arrow_space)s), 
+#				seq(V1,max(V1+1, V2-%(arrow_space)s), by=%(arrow_space)s)-1
+#				), by=tx
+#			]
+#		)
+#	}
+#	gtfp = ggplot(data=txlines) + geom_segment(aes(x=V1, xend=V2, y=tx, yend=tx))
+	
+#	gtfp = gtfp + geom_segment(data=txarrows, aes(x=V1,xend=V2,y=tx,yend=tx), arrow=arrow(length=unit(0.05,"npc")))
+	gtfp = ggplot()
+	gtfp = gtfp + geom_segment(data=ann_list[['introns']], aes(x=start, xend=end, y=tx, yend=tx), size=1)
+	gtfp = gtfp + geom_segment(data=ann_list[['exons']], aes(x=start, xend=end, y=tx, yend=tx), size=4, alpha=0.3)
 	gtfp = gtfp + scale_y_discrete(expand=c(1,0))
 	""" %({
-		"tx": ",".join(annotation.iterkeys()),
-		"n_exons": ",".join(map(str, map(len, annotation.itervalues()))),
-		"exon_start" : ",".join(map(str, (v[0] for vs in annotation.itervalues() for v in vs))),
-		"exon_end" : ",".join(map(str, (v[1] for vs in annotation.itervalues() for v in vs))),
-		"strand" : ",".join(map(str, (v[2] for vs in annotation.itervalues() for v in vs))),
+		"tx_exons": ",".join(annotation["exons"].keys()),
+		"n_exons": ",".join(map(str, map(len, annotation["exons"].itervalues()))),
+		"exon_start" : ",".join(map(str, (v[0] for vs in annotation["exons"].itervalues() for v in vs))),
+		"exon_end" : ",".join(map(str, (v[1] for vs in annotation["exons"].itervalues() for v in vs))),
+		"strand" : ",".join(map(str, (v[2] for vs in annotation["exons"].itervalues() for v in vs))),
+
+		"tx_introns": ",".join(annotation["introns"].keys()),
+		"n_introns": ",".join(map(str, map(len, annotation["introns"].itervalues()))),
+		"intron_start" : ",".join(map(str, (v[0] for vs in annotation["introns"].itervalues() for v in vs))),
+		"intron_end" : ",".join(map(str, (v[1] for vs in annotation["introns"].itervalues() for v in vs))),
+		"strand" : ",".join(map(str, (v[2] for vs in annotation["introns"].itervalues() for v in vs))),
 		"arrow_space" : arrow_space,
 	})
 	return s
@@ -387,6 +421,7 @@ if __name__ == "__main__":
 
 	if args.gtf:
 		annotation = read_gtf(args.gtf, args.coordinates)
+
 
 	bam_dict, overlay_dict, color_dict = {"+":{}}, {}, {}
 	if args.strand != "NONE": bam_dict["-"] = {}
@@ -483,7 +518,9 @@ if __name__ == "__main__":
 				curve_par = gpar(lwd=lwd, col=color_list[[id]])
 		
 				# Choose position of the arch (top or bottom)
-				nss = length(match(j[1], junctions[,1]))
+#				nss = sum(junctions[,1] %%in%% j[1])
+#				nss = i
+				nss = 1
 				if (nss%%%%2 == 0) {  #bottom
 					ymid = -0.4 * maxheight
 					# Draw the arcs
