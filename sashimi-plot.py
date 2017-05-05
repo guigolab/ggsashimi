@@ -4,8 +4,7 @@
 from argparse import ArgumentParser
 #from subprocess import Popen, PIPE
 import subprocess as sp
-import sys, re
-import operator
+import sys, re, copy
 
 
 def define_options():
@@ -230,7 +229,6 @@ def shrink_junctions(dons, accs, introns):
 def read_gtf(f, c):
 	exons = {}
 	transcripts = {}
-	introns = {}
 	chr, start, end = parse_coordinates(c)
 	with open(f) as openf:
 		for line in openf:
@@ -251,17 +249,38 @@ def read_gtf(f, c):
 				if (start < el_start < end or start < el_end < end):
 					exons.setdefault(transcript_id, []).append((max(el_start, start), min(end, el_end), strand))
 
-	for tx, (tx_start,tx_end) in transcripts.iteritems():
+	return transcripts, exons
+
+
+def make_introns(transcripts, exons, intersected_introns=None):
+	new_transcripts = copy.deepcopy(transcripts)
+	new_exons = copy.deepcopy(exons)
+	introns = {}
+	if intersected_introns:
+		for tx, (tx_start,tx_end) in new_transcripts.iteritems():
+			total_shift = 0
+			for a,b in intersected_introns:
+				l = b - a
+				shift = l - int(l**0.7)
+				total_shift += shift
+				for i, (exon_start,exon_end,strand) in enumerate(exons[tx]):
+					new_exon_start, new_exon_end = new_exons[tx][i][:2]
+					if b <= exon_end:
+						new_exon_end = new_exons[tx][i][1] - shift
+						if b <= exon_start:
+							new_exon_start = new_exons[tx][i][0] - shift
+					new_exons[tx][i] = (new_exon_start,new_exon_end,strand)
+			new_transcripts[tx] = (tx_start, tx_end - total_shift)
+	for tx, (tx_start,tx_end) in new_transcripts.iteritems():
 		intron_start = tx_start
-		for ex_start, ex_end, strand in sorted(exons[tx]):
+		for ex_start, ex_end, strand in sorted(new_exons[tx]):
 			intron_end = ex_start
 			if tx_start < ex_start:
 				introns.setdefault(tx, []).append((intron_start, intron_end, strand))
 			intron_start = ex_end
 		if tx_end > ex_end:
 			introns.setdefault(tx, []).append((intron_start, tx_end, strand))
-					
-	d = {'transcripts': transcripts, 'exons': exons, 'introns': introns}
+	d = {'transcripts': new_transcripts, 'exons': new_exons, 'introns': introns}
 	return d
 
 
@@ -352,7 +371,9 @@ def setup_R_script(h, w, b):
 	base_size = %(b)s
 	theme_set(theme_bw(base_size=base_size))
 	theme_update(
-		panel.grid = element_blank()
+		panel.grid = element_blank(),
+		axis.text.y = element_blank(),
+		axis.title.y = element_blank()
 	)
 
 	density_list = list()
@@ -416,9 +437,6 @@ if __name__ == "__main__":
 #	args.coordinates = "chrX:9609491-9610000"
 #	args.bam = "/nfs/no_backup/rg/epalumbo/projects/tg/work/8b/8b0ac8705f37fd772a06ab7db89f6b/2A_m4_n10_toGenome.bam"
 
-	if args.gtf:
-		annotation = read_gtf(args.gtf, args.coordinates)
-
 
 	bam_dict, overlay_dict, color_dict = {"+":{}}, {}, {}
 	if args.strand != "NONE": bam_dict["-"] = {}
@@ -433,12 +451,20 @@ if __name__ == "__main__":
 		if overlay_level == '"None"':
 			color_dict.setdefault(id, color_level)
 
-	
 
-	for strand in bam_dict:	
+	if args.gtf:
+		transcripts, exons = read_gtf(args.gtf, args.coordinates)
+
+
+	for strand in bam_dict:
+		
+		intersected_introns = None
+
 		if args.shrink:
 			introns = (v for vs in bam_dict[strand].values() for v in zip(vs[2], vs[3]))
 			intersected_introns = list(intersect_introns(introns))
+		
+		annotation = make_introns(transcripts, exons, intersected_introns)
 
 		R_script = setup_R_script(args.height, args.width, args.base_size)
 		palette = "#ff0000", "#000000", "#00ff00"
@@ -447,8 +473,6 @@ if __name__ == "__main__":
 	
 		arrow_bins = 50
 		if args.gtf:
-#			if args.shrink:
-#				annotation = shrink_annotation(annotation)
 			R_script += gtf_for_ggplot(annotation, args.coordinates, arrow_bins)
 			
 			
