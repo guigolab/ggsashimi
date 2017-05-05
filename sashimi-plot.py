@@ -287,40 +287,37 @@ def gtf_for_ggplot(annotation, c, arrow_bins):
 	)
 
 
-#	# Lines for transcripts (introns)
-#	txlines = ann[, list(min(exon_start), max(exon_end), unique(strand)), by=tx]
-#
-#	# Create data table for strand arrows
-#	txarrows = data.table()
-#	# Add right-pointing arrows for plus strand
-#	if ("+" %%in%% txlines$V3) {
-#		txarrows = rbind(
-#			txarrows,
-#			txlines[V3=="+", list(
-#				seq(V1+%(arrow_space)s,V2,by=%(arrow_space)s)-1, 
-#				seq(V1+%(arrow_space)s,V2,by=%(arrow_space)s)
-#				), by=tx
-#			]
-#		)
-#	}
-#	# Add left-pointing arrows for minus strand
-#	if ("-" %%in%% txlines$V3) {
-#		txarrows = rbind(
-#			txarrows,
-#			txlines[V3=="-", list(
-#				seq(V1,max(V1+1, V2-%(arrow_space)s), by=%(arrow_space)s), 
-#				seq(V1,max(V1+1, V2-%(arrow_space)s), by=%(arrow_space)s)-1
-#				), by=tx
-#			]
-#		)
-#	}
-#	gtfp = ggplot(data=txlines) + geom_segment(aes(x=V1, xend=V2, y=tx, yend=tx))
+	# Create data table for strand arrows
+	txarrows = data.table()
+	introns = ann_list[['introns']]
+	# Add right-pointing arrows for plus strand
+	if ("+" %%in%% introns$strand) {
+		txarrows = rbind(
+			txarrows,
+			introns[strand=="+", list(
+				seq(start+4,end,by=%(arrow_space)s)-1, 
+				seq(start+4,end,by=%(arrow_space)s)
+				), by=.(tx,start,end)
+			]
+		)
+	}
+	# Add left-pointing arrows for minus strand
+	if ("-" %%in%% introns$strand) {
+		txarrows = rbind(
+			txarrows,
+			introns[strand=="-", list(
+				seq(start,max(start+1, end-4), by=%(arrow_space)s), 
+				seq(start,max(start+1, end-4), by=%(arrow_space)s)-1
+				), by=.(tx,start,end)
+			]
+		)
+	}
 	
-#	gtfp = gtfp + geom_segment(data=txarrows, aes(x=V1,xend=V2,y=tx,yend=tx), arrow=arrow(length=unit(0.05,"npc")))
 	gtfp = ggplot()
-	gtfp = gtfp + geom_segment(data=ann_list[['introns']], aes(x=start, xend=end, y=tx, yend=tx), size=1)
-	gtfp = gtfp + geom_segment(data=ann_list[['exons']], aes(x=start, xend=end, y=tx, yend=tx), size=4, alpha=0.3)
-	gtfp = gtfp + scale_y_discrete(expand=c(1,0))
+	gtfp = gtfp + geom_segment(data=ann_list[['introns']], aes(x=start, xend=end, y=tx, yend=tx), size=0.3)
+	gtfp = gtfp + geom_segment(data=txarrows, aes(x=V1,xend=V2,y=tx,yend=tx), arrow=arrow(length=unit(0.02,"npc")))
+	gtfp = gtfp + geom_segment(data=ann_list[['exons']], aes(x=start, xend=end, y=tx, yend=tx), size=5, alpha=1)
+	gtfp = gtfp + scale_y_discrete(expand=c(0,0.5))
 	""" %({
 		"tx_exons": ",".join(annotation["exons"].keys()),
 		"n_exons": ",".join(map(str, map(len, annotation["exons"].itervalues()))),
