@@ -266,7 +266,9 @@ def make_introns(transcripts, exons, intersected_introns=None):
 				for i, (exon_start,exon_end,strand) in enumerate(exons[tx]):
 					new_exon_start, new_exon_end = new_exons[tx][i][:2]
 					if a < exon_start:	
-						if b > exon_end:	
+						if b > exon_end:
+							if i ==  len(exons[tx])-1:
+								total_shift = total_shift - shift + (exon_start - a)*(1-int(l**-0.3))
 							shift = (exon_start - a)*(1-int(l**-0.3))
 							new_exon_end = new_exons[tx][i][1] - shift
 						new_exon_start = new_exons[tx][i][0] - shift
@@ -282,7 +284,9 @@ def make_introns(transcripts, exons, intersected_introns=None):
 					#		new_exon_start = new_exons[tx][i][0] - shift
 					#		new_exon_end = new_exons[tx][i][1] - shift
 					new_exons[tx][i] = (new_exon_start,new_exon_end,strand)
+			tx_start = min(tx_start, sorted(new_exons[tx])[0][0])
 			new_transcripts[tx] = (tx_start, tx_end - total_shift)
+
 	for tx, (tx_start,tx_end) in new_transcripts.iteritems():
 		intron_start = tx_start
 		for ex_start, ex_end, strand in sorted(new_exons[tx]):
