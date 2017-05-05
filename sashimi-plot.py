@@ -353,6 +353,7 @@ def gtf_for_ggplot(annotation, c, arrow_bins):
 	gtfp = gtfp + geom_segment(data=txarrows, aes(x=V1,xend=V2,y=tx,yend=tx), arrow=arrow(length=unit(0.02,"npc")))
 	gtfp = gtfp + geom_segment(data=ann_list[['exons']], aes(x=start, xend=end, y=tx, yend=tx), size=5, alpha=1)
 	gtfp = gtfp + scale_y_discrete(expand=c(0,0.5))
+	gtfp = gtfp + scale_x_continuous(expand=c(0,0.25))
 	""" %({
 		"tx_exons": ",".join(annotation["exons"].keys()),
 		"n_exons": ",".join(map(str, map(len, annotation["exons"].itervalues()))),
@@ -534,6 +535,7 @@ if __name__ == "__main__":
 			# Density plot
 			gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity', fill=color_list[[id]], alpha=1/2)
 			gp = gp + labs(title=id)
+			gp = gp + scale_x_continuous(expand=c(0,0.2))
 	
 
 			if (nrow(junctions)>0) {row_i = 1:nrow(junctions)} else {row_i = c()}
