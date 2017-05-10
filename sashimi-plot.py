@@ -135,7 +135,7 @@ def read_bam_input(f, overlay, color):
 	if f.endswith(".bam"):
 		bn = f.strip().split("/")[-1].strip(".bam")
 		yield bn, f, None, None
-        return
+		return
 	with open(f) as openf:
 		for line in openf:
 			line_sp = line.strip().split("\t")
@@ -482,7 +482,8 @@ if __name__ == "__main__":
 			introns = (v for vs in bam_dict[strand].values() for v in zip(vs[2], vs[3]))
 			intersected_introns = list(intersect_introns(introns))
 
-		annotation = make_introns(transcripts, exons, intersected_introns)
+		if args.gtf:
+		    annotation = make_introns(transcripts, exons, intersected_introns)
 
 		R_script = setup_R_script(args.height, args.width, args.base_size)
 		palette = "#ff0000", "#000000", "#00ff00"
