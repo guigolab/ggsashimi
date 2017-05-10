@@ -10,19 +10,19 @@ import sys, re, copy
 def define_options():
 	# Argument parsing
 	parser = ArgumentParser(description='Create sashimi plot for a given genomic region')
-	parser.add_argument("-b", "--bam", type=str, 
+	parser.add_argument("-b", "--bam", type=str,
 		help="Individual bam file or file with a list of bam files and ids")
 	parser.add_argument("-c", "--coordinates", type=str,
 		help="Genomic region. Format: chr:start-end. Remember that bam coordinates are 0-based")
-	parser.add_argument("-M", "--min_coverage", type=int, default=1, 
+	parser.add_argument("-M", "--min_coverage", type=int, default=1,
 		help="Minimum number of reads supporting a junction to be drawn [default=1]")
-	parser.add_argument("-g", "--gtf", 
+	parser.add_argument("-g", "--gtf",
 		help="Gtf file with annotation (only exons is enough)")
-	parser.add_argument("-s", "--strand", default="NONE", type=str, 
+	parser.add_argument("-s", "--strand", default="NONE", type=str,
 		help="Strand specificity: <NONE> <SENSE> <ANTISENSE> <MATE1_SENSE> <MATE2_SENSE> [default=%(default)s]")
-	parser.add_argument("--shrink", action="store_true",  
+	parser.add_argument("--shrink", action="store_true",
 		help="Shrink the junctions by a factor for nicer display [default=%(default)s]")
-	parser.add_argument("-O", "--overlay", type=int, 
+	parser.add_argument("-O", "--overlay", type=int,
 		help="Index of column with overlay levels (1-based)")
 	parser.add_argument("-C", "--color-factor", type=int, dest="color_factor",
 		help="Index of column with color levels (1-based)")
@@ -40,7 +40,7 @@ def define_options():
 def parse_coordinates(c):
 	chr = c.split(":")[0]
 	start, end = c.split(":")[1].split("-")
-	# Convert to 0-based 
+	# Convert to 0-based
 	start, end = int(start) - 1, int(end)
 	return chr, start, end
 
@@ -60,7 +60,7 @@ def count_operator(CIGAR_op, CIGAR_len, pos, start, end, a, junctions, line):
 	if CIGAR_op == "I" or CIGAR_op == "S":
 		return pos
 
-	# Deletion 
+	# Deletion
 	if CIGAR_op == "D":
 		pass
 
@@ -111,7 +111,7 @@ def read_bam(f, c, s):
 		samflag, read_start, CIGAR = line_sp[1], int(line_sp[3]), line_sp[5]
 
 		# Ignore reads with more exotic CIGAR operators
-		if any(map(lambda x: x in CIGAR, ["H", "P", "X", "="])): 
+		if any(map(lambda x: x in CIGAR, ["H", "P", "X", "="])):
 			continue
 
 		read_strand = ["+", "-"][flip_read(s, samflag) ^ bool(int(samflag) & 16)]
@@ -127,14 +127,15 @@ def read_bam(f, c, s):
 			pos = count_operator(CIGAR_op, CIGAR_len, pos, start, end, a[read_strand], junctions[read_strand], line=line)
 
 	p.stdout.close()
-	
+
 	return a, junctions
 
 
 def read_bam_input(f, overlay, color):
 	if f.endswith(".bam"):
 		bn = f.strip().split("/")[-1].strip(".bam")
-		yield [(bn, f, None, None)]
+		yield bn, f, None, None
+        return
 	with open(f) as openf:
 		for line in openf:
 			line_sp = line.strip().split("\t")
@@ -208,7 +209,7 @@ def shrink_density(x, y, introns):
 
 def shrink_junctions(dons, accs, introns):
 	new_dons, new_accs = [0]*len(dons), [0]*len(accs)
-	shift_acc = 0 
+	shift_acc = 0
 	shift_don = 0
 	s = set()
 	junctions = zip(dons, accs)
@@ -265,7 +266,7 @@ def make_introns(transcripts, exons, intersected_introns=None):
 				total_shift += shift
 				for i, (exon_start,exon_end,strand) in enumerate(exons[tx]):
 					new_exon_start, new_exon_end = new_exons[tx][i][:2]
-					if a < exon_start:	
+					if a < exon_start:
 						if b > exon_end:
 							if i ==  len(exons[tx])-1:
 								total_shift = total_shift - shift + (exon_start - a)*(1-int(l**-0.3))
@@ -273,7 +274,7 @@ def make_introns(transcripts, exons, intersected_introns=None):
 							new_exon_end = new_exons[tx][i][1] - shift
 						new_exon_start = new_exons[tx][i][0] - shift
 					if b <= exon_end:
-						new_exon_end = new_exons[tx][i][1] - shift					
+						new_exon_end = new_exons[tx][i][1] - shift
 					#if b <= exon_end:
 					#	new_exon_end = new_exons[tx][i][1] - shift
 					#	if a < exon_start:
@@ -308,13 +309,13 @@ def gtf_for_ggplot(annotation, c, arrow_bins):
 	# data table with exons
 	ann_list = list(
 		'exons' = data.table(
-			tx = rep(c(%(tx_exons)s), c(%(n_exons)s)), 
+			tx = rep(c(%(tx_exons)s), c(%(n_exons)s)),
 			start = c(%(exon_start)s),
 			end = c(%(exon_end)s),
 			strand = c(%(strand)s)
 		),
 		'introns' = data.table(
-			tx = rep(c(%(tx_introns)s), c(%(n_introns)s)), 
+			tx = rep(c(%(tx_introns)s), c(%(n_introns)s)),
 			start = c(%(intron_start)s),
 			end = c(%(intron_end)s),
 			strand = c(%(strand)s)
@@ -330,7 +331,7 @@ def gtf_for_ggplot(annotation, c, arrow_bins):
 		txarrows = rbind(
 			txarrows,
 			introns[strand=="+", list(
-				seq(start+4,end,by=%(arrow_space)s)-1, 
+				seq(start+4,end,by=%(arrow_space)s)-1,
 				seq(start+4,end,by=%(arrow_space)s)
 				), by=.(tx,start,end)
 			]
@@ -341,13 +342,13 @@ def gtf_for_ggplot(annotation, c, arrow_bins):
 		txarrows = rbind(
 			txarrows,
 			introns[strand=="-", list(
-				seq(start,max(start+1, end-4), by=%(arrow_space)s), 
+				seq(start,max(start+1, end-4), by=%(arrow_space)s),
 				seq(start,max(start+1, end-4), by=%(arrow_space)s)-1
 				), by=.(tx,start,end)
 			]
 		)
 	}
-	
+
 	gtfp = ggplot()
 	gtfp = gtfp + geom_segment(data=ann_list[['introns']], aes(x=start, xend=end, y=tx, yend=tx), size=0.3)
 	gtfp = gtfp + geom_segment(data=txarrows, aes(x=V1,xend=V2,y=tx,yend=tx), arrow=arrow(length=unit(0.02,"npc")))
@@ -412,7 +413,7 @@ def density_overlay(d, R_list):
 			levels(f$fac), function(y) {
 				rbindlist(lapply(subset(f, fac==y)$id, function(x) %(R_list)s[[as.character(x)]]))
 			}
-		), 
+		),
 		levels(f$fac)
 	)
 	""" %({
@@ -449,7 +450,7 @@ if __name__ == "__main__":
 
 	parser = define_options()
 	args = parser.parse_args()
-	
+
 #	args.coordinates = "chrX:9609491-9612406"
 #	args.coordinates = "chrX:9609491-9610000"
 #	args.bam = "/nfs/no_backup/rg/epalumbo/projects/tg/work/8b/8b0ac8705f37fd772a06ab7db89f6b/2A_m4_n10_toGenome.bam"
@@ -474,31 +475,31 @@ if __name__ == "__main__":
 
 
 	for strand in bam_dict:
-		
+
 		intersected_introns = None
 
 		if args.shrink:
 			introns = (v for vs in bam_dict[strand].values() for v in zip(vs[2], vs[3]))
 			intersected_introns = list(intersect_introns(introns))
-		
+
 		annotation = make_introns(transcripts, exons, intersected_introns)
 
 		R_script = setup_R_script(args.height, args.width, args.base_size)
 		palette = "#ff0000", "#000000", "#00ff00"
 
 		R_script += colorize(color_dict, palette, args.color_factor)
-	
+
 		arrow_bins = 50
 		if args.gtf:
 			R_script += gtf_for_ggplot(annotation, args.coordinates, arrow_bins)
-			
-			
+
+
 		for k, v in bam_dict[strand].iteritems():
 			x, y, dons, accs, yd, ya, counts = v
 			if args.shrink:
 				x, y = shrink_density(x, y, intersected_introns)
 				dons, accs = shrink_junctions(dons, accs, intersected_introns)
-#				dons, accs, yd, ya, counts = [], [], [], [], []			
+#				dons, accs, yd, ya, counts = [], [], [], [], []
 
 			R_script += """
 			density_list$%(id)s = data.frame(x=c(%(x)s), y=c(%(y)s))
@@ -517,26 +518,26 @@ if __name__ == "__main__":
 		if args.overlay:
 			R_script += density_overlay(overlay_dict, "density_list")
 			R_script += density_overlay(overlay_dict, "junction_list")
-	
+
 		R_script += """
-	
+
 		pdf("%(out)s", h=height, w=10)
 		grid.newpage()
 		pushViewport(viewport(layout = grid.layout(length(density_list)+%(args.gtf)s, 1)))
-	
+
 		for (bam_index in 1:length(density_list)) {
-		
+
 			id = names(density_list)[bam_index]
 			d = density_list[[id]]
 			junctions = junction_list[[id]]
-		
+
 			maxheight = max(d[['y']])
-		
+
 			# Density plot
 			gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity', fill=color_list[[id]], alpha=1/2)
 			gp = gp + labs(title=id)
 			gp = gp + scale_x_continuous(expand=c(0,0.2))
-	
+
 
 			if (nrow(junctions)>0) {row_i = 1:nrow(junctions)} else {row_i = c()}
 
@@ -544,18 +545,18 @@ if __name__ == "__main__":
 			for (i in row_i) {
 
 				j_tot_counts = sum(junctions[['count']])
-		
+
 				j = as.numeric(junctions[i,])
-		
-				# Find intron midpoint 
+
+				# Find intron midpoint
 				xmid = round(mean(j[1:2]), 1)
 				ymid = max(j[3:4]) * 1.1
-		
+
 				# Thickness of the arch
 				lwd = scale_lwd(j[5]/j_tot_counts)
-		
+
 				curve_par = gpar(lwd=lwd, col=color_list[[id]])
-		
+
 				# Choose position of the arch (top or bottom)
 #				nss = sum(junctions[,1] %%in%% j[1])
 #				nss = i
@@ -569,8 +570,8 @@ if __name__ == "__main__":
 					# Right
 					curve = xsplineGrob(x=c(1, 1, 0, 0), y=c(1, 0, 0, 0), shape=1, gp=curve_par)
 					gp = gp + annotation_custom(grob = curve, xmid, j[2], 0, ymid)
-				} 
-		
+				}
+
 				if (nss%%%%2 != 0) {  #top
 					# Draw the arcs
 					# Left
@@ -579,36 +580,36 @@ if __name__ == "__main__":
 					# Right
 					curve = xsplineGrob(x=c(1, 1, 0, 0), y=c(0, 1, 1, 1), shape=1, gp=curve_par)
 					gp = gp + annotation_custom(grob = curve, xmid, j[2], j[4], ymid)
-			
-					gp = gp + annotate("label", x = xmid, y = ymid, label = j[5], 
-						vjust=0.5, hjust=0.5, label.padding=unit(0.01, "lines"), 
+
+					gp = gp + annotate("label", x = xmid, y = ymid, label = j[5],
+						vjust=0.5, hjust=0.5, label.padding=unit(0.01, "lines"),
 						label.size=NA, size=(base_size*0.352777778)*0.6
 					)
 				}
-		
-	
+
+
 		#		gp = gp + annotation_custom(grob = rectGrob(x=0, y=0, gp=gpar(col="red"), just=c("left","bottom")), xmid, j[2], j[4], ymid)
 		#		gp = gp + annotation_custom(grob = rectGrob(x=0, y=0, gp=gpar(col="green"), just=c("left","bottom")), j[1], xmid, j[3], ymid)
-		
-		
+
+
 			}
 			print(gp, vp=viewport(layout.pos.row = bam_index, layout.pos.col = 1))
 		}
-	
+
 		if (%(args.gtf)s == 1) {
 			print(gtfp, vp=viewport(layout.pos.row = bam_index+1, layout.pos.col = 1))
 		}
-		
-	
+
+
 		dev.off()
-	
+
 		""" %({
-			"out": "tmp_%s.pdf" %strand, 
+			"out": "tmp_%s.pdf" %strand,
 			"args.gtf": int(bool(args.gtf)),
 			"height": 6,
 			})
-	
-	
+
+
 		plot(R_script)
 	exit()
 
