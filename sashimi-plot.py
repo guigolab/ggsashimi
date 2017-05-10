@@ -462,13 +462,14 @@ if __name__ == "__main__":
 		a, junctions = read_bam(bam, args.coordinates, args.strand)
 		for strand in a:
 		 	bam_dict[strand][id] = prepare_for_R(a[strand], junctions[strand], args.coordinates, args.min_coverage)
+		if color_level is None:
+			color_dict.setdefault(id, id)
 		if overlay_level != '"None"':
 			overlay_dict.setdefault(overlay_level, []).append(id)
 			if color_level:
 				color_dict.setdefault(overlay_level, overlay_level)
 		if overlay_level == '"None"':
 			color_dict.setdefault(id, color_level)
-
 
 	if args.gtf:
 		transcripts, exons = read_gtf(args.gtf, args.coordinates)
