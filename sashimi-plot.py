@@ -250,7 +250,7 @@ def read_gtf(f, c):
 			strand = '"' + strand + '"'
 			if el == "transcript":
 				if (el_end > start and el_start < end):
-					transcripts[transcript_id] = max(start, el_start), min(end, el_end)
+					transcripts[transcript_id] = max(start, el_start), min(end, el_end), strand
 				continue
 			if el == "exon":
 				if (start < el_start < end or start < el_end < end):
@@ -264,7 +264,7 @@ def make_introns(transcripts, exons, intersected_introns=None):
 	new_exons = copy.deepcopy(exons)
 	introns = {}
 	if intersected_introns:
-		for tx, (tx_start,tx_end) in new_transcripts.iteritems():
+		for tx, (tx_start,tx_end,strand) in new_transcripts.iteritems():
 			total_shift = 0
 			for a,b in intersected_introns:
 				l = b - a
@@ -294,9 +294,11 @@ def make_introns(transcripts, exons, intersected_introns=None):
 			tx_start = min(tx_start, sorted(new_exons[tx])[0][0])
 			new_transcripts[tx] = (tx_start, tx_end - total_shift)
 
-	for tx, (tx_start,tx_end) in new_transcripts.iteritems():
+
+	for tx, (tx_start,tx_end,strand) in new_transcripts.iteritems():
 		intron_start = tx_start
-		for ex_start, ex_end, strand in sorted(new_exons[tx]):
+		ex_end = 0
+		for ex_start, ex_end, strand in sorted(new_exons.get(tx, [])):
 			intron_end = ex_start
 			if tx_start < ex_start:
 				introns.setdefault(tx, []).append((intron_start, intron_end, strand))
@@ -314,21 +316,46 @@ def gtf_for_ggplot(annotation, c, arrow_bins):
 
 	# data table with exons
 	ann_list = list(
-		'exons' = data.table(
+		"exons" = data.table(),
+		"introns" = data.table()
+	)
+	"""
+
+	if annotation["exons"]:
+	
+		s += """
+		ann_list[['exons']] = data.table(
 			tx = rep(c(%(tx_exons)s), c(%(n_exons)s)),
 			start = c(%(exon_start)s),
 			end = c(%(exon_end)s),
 			strand = c(%(strand)s)
-		),
-		'introns' = data.table(
+		)
+		""" %({
+		"tx_exons": ",".join(annotation["exons"].keys()),
+		"n_exons": ",".join(map(str, map(len, annotation["exons"].itervalues()))),
+		"exon_start" : ",".join(map(str, (v[0] for vs in annotation["exons"].itervalues() for v in vs))),
+		"exon_end" : ",".join(map(str, (v[1] for vs in annotation["exons"].itervalues() for v in vs))),
+		"strand" : ",".join(map(str, (v[2] for vs in annotation["exons"].itervalues() for v in vs))),
+		})
+
+	if annotation["introns"]:
+	
+		s += """
+		ann_list[['introns']] = data.table(
 			tx = rep(c(%(tx_introns)s), c(%(n_introns)s)),
 			start = c(%(intron_start)s),
 			end = c(%(intron_end)s),
 			strand = c(%(strand)s)
 		)
-	)
+		""" %({
+			"tx_introns": ",".join(annotation["introns"].keys()),
+			"n_introns": ",".join(map(str, map(len, annotation["introns"].itervalues()))),
+			"intron_start" : ",".join(map(str, (v[0] for vs in annotation["introns"].itervalues() for v in vs))),
+			"intron_end" : ",".join(map(str, (v[1] for vs in annotation["introns"].itervalues() for v in vs))),
+			"strand" : ",".join(map(str, (v[2] for vs in annotation["introns"].itervalues() for v in vs))),
+		})
 
-
+	s += """
 	# Create data table for strand arrows
 	txarrows = data.table()
 	introns = ann_list[['introns']]
@@ -356,23 +383,16 @@ def gtf_for_ggplot(annotation, c, arrow_bins):
 	}
 
 	gtfp = ggplot()
-	gtfp = gtfp + geom_segment(data=ann_list[['introns']], aes(x=start, xend=end, y=tx, yend=tx), size=0.3)
-	gtfp = gtfp + geom_segment(data=txarrows, aes(x=V1,xend=V2,y=tx,yend=tx), arrow=arrow(length=unit(0.02,"npc")))
-	gtfp = gtfp + geom_segment(data=ann_list[['exons']], aes(x=start, xend=end, y=tx, yend=tx), size=5, alpha=1)
+	if (length(ann_list[['introns']]) > 0) {
+		gtfp = gtfp + geom_segment(data=ann_list[['introns']], aes(x=start, xend=end, y=tx, yend=tx), size=0.3)
+		gtfp = gtfp + geom_segment(data=txarrows, aes(x=V1,xend=V2,y=tx,yend=tx), arrow=arrow(length=unit(0.02,"npc")))
+	}
+	if (length(ann_list[['exons']]) > 0) {
+		gtfp = gtfp + geom_segment(data=ann_list[['exons']], aes(x=start, xend=end, y=tx, yend=tx), size=5, alpha=1)
+	}
 	gtfp = gtfp + scale_y_discrete(expand=c(0,0.5))
 	gtfp = gtfp + scale_x_continuous(expand=c(0,0.25))
 	""" %({
-		"tx_exons": ",".join(annotation["exons"].keys()),
-		"n_exons": ",".join(map(str, map(len, annotation["exons"].itervalues()))),
-		"exon_start" : ",".join(map(str, (v[0] for vs in annotation["exons"].itervalues() for v in vs))),
-		"exon_end" : ",".join(map(str, (v[1] for vs in annotation["exons"].itervalues() for v in vs))),
-		"strand" : ",".join(map(str, (v[2] for vs in annotation["exons"].itervalues() for v in vs))),
-
-		"tx_introns": ",".join(annotation["introns"].keys()),
-		"n_introns": ",".join(map(str, map(len, annotation["introns"].itervalues()))),
-		"intron_start" : ",".join(map(str, (v[0] for vs in annotation["introns"].itervalues() for v in vs))),
-		"intron_end" : ",".join(map(str, (v[1] for vs in annotation["introns"].itervalues() for v in vs))),
-		"strand" : ",".join(map(str, (v[2] for vs in annotation["introns"].itervalues() for v in vs))),
 		"arrow_space" : arrow_space,
 	})
 	return s
