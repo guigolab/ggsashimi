@@ -292,8 +292,7 @@ def make_introns(transcripts, exons, intersected_introns=None):
 					#		new_exon_end = new_exons[tx][i][1] - shift
 					new_exons[tx][i] = (new_exon_start,new_exon_end,strand)
 			tx_start = min(tx_start, sorted(new_exons[tx])[0][0])
-			new_transcripts[tx] = (tx_start, tx_end - total_shift)
-
+			new_transcripts[tx] = (tx_start, tx_end - total_shift, strand)
 
 	for tx, (tx_start,tx_end,strand) in new_transcripts.iteritems():
 		intron_start = tx_start
@@ -347,40 +346,41 @@ def gtf_for_ggplot(annotation, c, arrow_bins):
 			end = c(%(intron_end)s),
 			strand = c(%(strand)s)
 		)
+		# Create data table for strand arrows
+		txarrows = data.table()
+		introns = ann_list[['introns']]
+		# Add right-pointing arrows for plus strand
+		if ("+" %%in%% introns$strand) {
+			txarrows = rbind(
+				txarrows,
+				introns[strand=="+" & end-start>5, list(
+					seq(start+4,end,by=%(arrow_space)s)-1,
+					seq(start+4,end,by=%(arrow_space)s)
+					), by=.(tx,start,end)
+				]
+			)
+		}
+		# Add left-pointing arrows for minus strand
+		if ("-" %%in%% introns$strand) {
+			txarrows = rbind(
+				txarrows,
+				introns[strand=="-" & end-start>5, list(
+					seq(start,max(start+1, end-4), by=%(arrow_space)s),
+					seq(start,max(start+1, end-4), by=%(arrow_space)s)-1
+					), by=.(tx,start,end)
+				]
+			)
+		}
 		""" %({
 			"tx_introns": ",".join(annotation["introns"].keys()),
 			"n_introns": ",".join(map(str, map(len, annotation["introns"].itervalues()))),
 			"intron_start" : ",".join(map(str, (v[0] for vs in annotation["introns"].itervalues() for v in vs))),
 			"intron_end" : ",".join(map(str, (v[1] for vs in annotation["introns"].itervalues() for v in vs))),
 			"strand" : ",".join(map(str, (v[2] for vs in annotation["introns"].itervalues() for v in vs))),
+			"arrow_space" : arrow_space,
 		})
 
 	s += """
-	# Create data table for strand arrows
-	txarrows = data.table()
-	introns = ann_list[['introns']]
-	# Add right-pointing arrows for plus strand
-	if ("+" %%in%% introns$strand) {
-		txarrows = rbind(
-			txarrows,
-			introns[strand=="+", list(
-				seq(start+4,end,by=%(arrow_space)s)-1,
-				seq(start+4,end,by=%(arrow_space)s)
-				), by=.(tx,start,end)
-			]
-		)
-	}
-	# Add left-pointing arrows for minus strand
-	if ("-" %%in%% introns$strand) {
-		txarrows = rbind(
-			txarrows,
-			introns[strand=="-", list(
-				seq(start,max(start+1, end-4), by=%(arrow_space)s),
-				seq(start,max(start+1, end-4), by=%(arrow_space)s)-1
-				), by=.(tx,start,end)
-			]
-		)
-	}
 
 	gtfp = ggplot()
 	if (length(ann_list[['introns']]) > 0) {
@@ -391,10 +391,9 @@ def gtf_for_ggplot(annotation, c, arrow_bins):
 		gtfp = gtfp + geom_segment(data=ann_list[['exons']], aes(x=start, xend=end, y=tx, yend=tx), size=5, alpha=1)
 	}
 	gtfp = gtfp + scale_y_discrete(expand=c(0,0.5))
-	gtfp = gtfp + scale_x_continuous(expand=c(0,0.25))
-	""" %({
-		"arrow_space" : arrow_space,
-	})
+	gtfp = gtfp + scale_x_continuous(expand=c(0,0.25), limits = c(%s,%s))
+	""" %(start, end)
+	
 	return s
 
 
