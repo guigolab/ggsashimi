@@ -18,7 +18,7 @@ def define_options():
 		help="Prefix for plot file name [default=%(default)s]")
 	parser.add_argument("-S", "--out-strand", type=str, dest="out_strand", default="both",
 		help="Only for --strand other than 'NONE'. Choose which signal strand to plot: <both> <plus> <minus> [default=%(default)s]")
-	parser.add_argument("-M", "--min_coverage", type=int, default=1,
+	parser.add_argument("-M", "--min-coverage", type=int, default=1, dest="min_coverage",
 		help="Minimum number of reads supporting a junction to be drawn [default=1]")
 	parser.add_argument("-g", "--gtf",
 		help="Gtf file with annotation (only exons is enough)")
@@ -33,7 +33,9 @@ def define_options():
 	parser.add_argument("-L", "--labels", type=int, dest="labels", default=1,
 		help="Index of column with labels (1-based) [default=%(default)s]")
 	parser.add_argument("--height", type=int, default=6,
-		help="Height of the plot in inches [default=%(default)s]")
+		help="Height of the individual signal plot in inches [default=%(default)s]")
+	parser.add_argument("--ann-height", type=float, default=1.5, dest="ann_height",
+		help="Height of annotation plot in inches [default=%(default)s]")
 	parser.add_argument("--width", type=int, default=10,
 		help="Width of the plot in inches [default=%(default)s]")
 	parser.add_argument("--base-size", type=int, default=14, dest="base_size",
@@ -244,6 +246,7 @@ def read_gtf(f, c):
 	exons = {}
 	transcripts = {}
 	chr, start, end = parse_coordinates(c)
+	end = end -1
 	with open(f) as openf:
 		for line in openf:
 			if line.startswith("#"):
@@ -253,7 +256,7 @@ def read_gtf(f, c):
 				continue
 			d = dict(kv.strip().split(" ") for kv in tags.strip(";").split("; "))
 			transcript_id = d["transcript_id"]
-			el_start, el_end = map(int, (el_start, el_end))
+			el_start, el_end = int(el_start) -1, int(el_end)
 			strand = '"' + strand + '"'
 			if el == "transcript":
 				if (el_end > start and el_start < end):
@@ -389,6 +392,9 @@ def gtf_for_ggplot(annotation, start, end, arrow_bins):
 	}
 	gtfp = gtfp + scale_y_discrete(expand=c(0,0.5))
 	gtfp = gtfp + scale_x_continuous(expand=c(0,0.25), limits = c(%s,%s))
+#	gtfp = gtfp + labs(y="m") + theme(axis.title.y=element_text(colour="white"))
+	gtfp = gtfp + labs(y=NULL)
+	gtfp = gtfp + theme(plot.margin=unit(c(0,0,0,0), "npc"))
 	""" %(start, end)
 	
 	return s
@@ -412,8 +418,10 @@ def setup_R_script(h, w, b, label_dict):
 	theme_set(theme_bw(base_size=base_size))
 	theme_update(
 		panel.grid = element_blank(),
-		axis.text.y = element_blank(),
-		axis.title.y = element_blank()
+		plot.margin = unit.c(unit(0,"npc"), unit(0,"npc"), unit(0,"npc"), unit(1,"strwidth","FbGN00000")),
+		axis.line = element_line(size=0.5),
+#		axis.text.y = element_blank(),
+		axis.title.x = element_blank()
 	)
 
 	labels = list(%(labels)s)
@@ -465,9 +473,9 @@ def colorize(d, p, color_factor):
 	if n > len(p):
 		p = (p*n)[:n]
 	if color_factor:
-		s = "color_list = list(%s)\n" %( ",".join('"%s"="%s"' %(k, p[levels.index(v)]) for k,v in d.iteritems()) )
+		s = "color_list = list(%s)\n" %( ",".join('%s="%s"' %(k, p[levels.index(v)]) for k,v in d.iteritems()) )
 	else:
-		s = "color_list = list(%s)\n" %( ",".join('"%s"="%s"' %(k, "grey") for k,v in d.iteritems()) )
+		s = "color_list = list(%s)\n" %( ",".join('%s="%s"' %(k, "grey") for k,v in d.iteritems()) )
 	return s
 
 
@@ -529,7 +537,13 @@ if __name__ == "__main__":
 		if args.gtf:
 		    annotation = make_introns(transcripts, exons, intersected_introns)
 
-		R_script = setup_R_script(args.height, args.width, args.base_size, label_dict)
+		# Define plot height
+		bam_height = args.height * len(id_list)
+		if args.overlay:
+			bam_height = args.height * len(overlay_dict)
+		if args.gtf:
+			bam_height += args.ann_height
+		R_script = setup_R_script(bam_height, args.width, args.base_size, label_dict)
 		palette = "#ff0000", "#000000", "#00ff00"
 
 		R_script += colorize(color_dict, palette, args.color_factor)
@@ -570,9 +584,16 @@ if __name__ == "__main__":
 
 		R_script += """
 
-		pdf("%(out)s", h=height, w=10)
+		pdf("%(out)s", h=height, w=width)
 		grid.newpage()
-		pushViewport(viewport(layout = grid.layout(length(density_list)+%(args.gtf)s, 1)))
+		pushViewport(viewport(
+			layout = grid.layout(
+				nrow=length(density_list)+%(args.gtf)s, 
+				ncol=1, 
+				heights=unit(c(rep(%(signal_height)s,length(density_list)), %(ann_height)s*%(args.gtf)s), "in")
+				)
+			)
+		)
 
 		for (bam_index in 1:length(density_list)) {
 
@@ -584,8 +605,14 @@ if __name__ == "__main__":
 
 			# Density plot
 			gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity', fill=color_list[[id]], alpha=1/2)
-			gp = gp + labs(title=labels[[id]])
+			gp = gp + labs(y=labels[[id]])
+			gp = gp + theme(axis.text.y=element_blank())
 			gp = gp + scale_x_continuous(expand=c(0,0.2))
+#			gp = gp + scale_y_continuous(expand=c(0,0))
+			if (bam_index != length(density_list)) {
+				gp = gp + theme(axis.text.x = element_blank())
+			}
+
 
 
 			if (nrow(junctions)>0) {row_i = 1:nrow(junctions)} else {row_i = c()}
@@ -654,8 +681,9 @@ if __name__ == "__main__":
 
 		""" %({
 			"out": "%s.pdf" %out_prefix,
-			"args.gtf": int(bool(args.gtf)),
-			"height": 6,
+			"args.gtf": float(bool(args.gtf)),
+			"signal_height": args.height,
+			"ann_height": args.ann_height,
 			})
 
 
