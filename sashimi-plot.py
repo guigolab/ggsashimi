@@ -308,8 +308,7 @@ def make_introns(transcripts, exons, intersected_introns=None):
 	return d
 
 
-def gtf_for_ggplot(annotation, c, arrow_bins):
-	chr, start, end = parse_coordinates(c)
+def gtf_for_ggplot(annotation, start, end, arrow_bins):
 	arrow_space = (end - start)/arrow_bins
 	s = """
 
@@ -519,17 +518,20 @@ if __name__ == "__main__":
 
 		R_script += colorize(color_dict, palette, args.color_factor)
 
-		arrow_bins = 50
-		if args.gtf:
-			R_script += gtf_for_ggplot(annotation, args.coordinates, arrow_bins)
 
 
-		for k, v in bam_dict[strand].iteritems():
+		for i, (k, v) in enumerate(bam_dict[strand].iteritems()):
 			x, y, dons, accs, yd, ya, counts = v
 			if args.shrink:
 				x, y = shrink_density(x, y, intersected_introns)
 				dons, accs = shrink_junctions(dons, accs, intersected_introns)
 #				dons, accs, yd, ya, counts = [], [], [], [], []
+
+			if i == 0:
+				arrow_bins = 50
+				if args.gtf:
+					R_script += gtf_for_ggplot(annotation, x[0], x[-1], arrow_bins)
+
 
 			R_script += """
 			density_list[["%(id)s"]] = data.frame(x=c(%(x)s), y=c(%(y)s))
