@@ -26,6 +26,8 @@ def define_options():
 		help="Index of column with overlay levels (1-based)")
 	parser.add_argument("-C", "--color-factor", type=int, dest="color_factor",
 		help="Index of column with color levels (1-based)")
+	parser.add_argument("-L", "--labels", type=int, dest="labels", default=1,
+		help="Index of column with labels (1-based) [default=%(default)s]")
 	parser.add_argument("--height", type=int, default=6,
 		help="Height of the plot in inches [default=%(default)s]")
 	parser.add_argument("--width", type=int, default=10,
@@ -137,17 +139,18 @@ def read_bam(f, c, s):
 	return a, junctions
 
 
-def read_bam_input(f, overlay, color):
+def read_bam_input(f, overlay, color, label):
 	if f.endswith(".bam"):
 		bn = f.strip().split("/")[-1].strip(".bam")
-		yield bn, f, None, None
+		yield bn, f, None, None, None
 		return
 	with open(f) as openf:
 		for line in openf:
 			line_sp = line.strip().split("\t")
 			overlay_level = line_sp[overlay-1] if overlay else None
 			color_level = line_sp[color-1] if color else None
-			yield line_sp[0], line_sp[1], '"%s"' %(overlay_level), '"%s"' %(color_level)
+			label_text = line_sp[label-1] if label else None
+			yield line_sp[0], line_sp[1], '"%s"' %(overlay_level), '"%s"' %(color_level), label_text
 
 
 def prepare_for_R(a, junctions, c, m):
@@ -281,15 +284,6 @@ def make_introns(transcripts, exons, intersected_introns=None):
 						new_exon_start = new_exons[tx][i][0] - shift
 					if b <= exon_end:
 						new_exon_end = new_exons[tx][i][1] - shift
-					#if b <= exon_end:
-					#	new_exon_end = new_exons[tx][i][1] - shift
-					#	if a < exon_start:
-					#		new_exon_start = new_exons[tx][i][0] - shift
-					#else:
-					#	if a < exon_start:
-					#		shift = (exon_start - a)*(1-int(l**-0.3))
-					#		new_exon_start = new_exons[tx][i][0] - shift
-					#		new_exon_end = new_exons[tx][i][1] - shift
 					new_exons[tx][i] = (new_exon_start,new_exon_end,strand)
 			tx_start = min(tx_start, sorted(new_exons[tx])[0][0])
 			new_transcripts[tx] = (tx_start, tx_end - total_shift, strand)
@@ -396,7 +390,7 @@ def gtf_for_ggplot(annotation, start, end, arrow_bins):
 	return s
 
 
-def setup_R_script(h, w, b):
+def setup_R_script(h, w, b, label_dict):
 	s = """
 	library(ggplot2)
 	library(grid)
@@ -418,12 +412,16 @@ def setup_R_script(h, w, b):
 		axis.title.y = element_blank()
 	)
 
+	labels = list(%(labels)s)
+
 	density_list = list()
 	junction_list = list()
+
 	""" %({
 		'h': h,
 		'w': w,
 		'b': b,
+		'labels': ",".join(('"%s"="%s"' %(id,lab) for id,lab in label_dict.iteritems())),
 	})
 	return s
 
@@ -483,12 +481,13 @@ if __name__ == "__main__":
 #	args.bam = "/nfs/no_backup/rg/epalumbo/projects/tg/work/8b/8b0ac8705f37fd772a06ab7db89f6b/2A_m4_n10_toGenome.bam"
 
 
-	bam_dict, overlay_dict, color_dict, id_list = {"+":{}}, {}, {}, []
+	bam_dict, overlay_dict, color_dict, id_list, label_dict = {"+":{}}, {}, {}, [], {}
 	if args.strand != "NONE": bam_dict["-"] = {}
 
 	
-	for id, bam, overlay_level, color_level in read_bam_input(args.bam, args.overlay, args.color_factor):
+	for id, bam, overlay_level, color_level, label_text in read_bam_input(args.bam, args.overlay, args.color_factor, args.labels):
 		id_list.append(id)
+		label_dict[id] = label_text
 		a, junctions = read_bam(bam, args.coordinates, args.strand)
 		for strand in a:
 		 	bam_dict[strand][id] = prepare_for_R(a[strand], junctions[strand], args.coordinates, args.min_coverage)
@@ -500,6 +499,7 @@ if __name__ == "__main__":
 				color_dict.setdefault(overlay_level, overlay_level)
 		if overlay_level == '"None"':
 			color_dict.setdefault(id, color_level)
+
 
 	if args.gtf:
 		transcripts, exons = read_gtf(args.gtf, args.coordinates)
@@ -516,7 +516,7 @@ if __name__ == "__main__":
 		if args.gtf:
 		    annotation = make_introns(transcripts, exons, intersected_introns)
 
-		R_script = setup_R_script(args.height, args.width, args.base_size)
+		R_script = setup_R_script(args.height, args.width, args.base_size, label_dict)
 		palette = "#ff0000", "#000000", "#00ff00"
 
 		R_script += colorize(color_dict, palette, args.color_factor)
@@ -537,6 +537,7 @@ if __name__ == "__main__":
 
 
 			R_script += """
+			
 			density_list[["%(id)s"]] = data.frame(x=c(%(x)s), y=c(%(y)s))
 			junction_list[["%(id)s"]] = data.frame(x=c(%(dons)s), xend=c(%(accs)s), y=c(%(yd)s), yend=c(%(ya)s), count=c(%(counts)s))
 			""" %({
@@ -570,7 +571,7 @@ if __name__ == "__main__":
 
 			# Density plot
 			gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity', fill=color_list[[id]], alpha=1/2)
-			gp = gp + labs(title=id)
+			gp = gp + labs(title=labels[[id]])
 			gp = gp + scale_x_continuous(expand=c(0,0.2))
 
 
