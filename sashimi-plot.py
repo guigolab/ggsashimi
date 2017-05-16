@@ -445,9 +445,9 @@ def colorize(d, p, color_factor):
 	if n > len(p):
 		p = (p*n)[:n]
 	if color_factor:
-		s = "color_list = list(%s)\n" %( ",".join('%s="%s"' %(k, p[levels.index(v)]) for k,v in d.iteritems()) )
+		s = "color_list = list(%s)\n" %( ",".join('"%s"="%s"' %(k, p[levels.index(v)]) for k,v in d.iteritems()) )
 	else:
-		s = "color_list = list(%s)\n" %( ",".join('%s="%s"' %(k, "grey") for k,v in d.iteritems()) )
+		s = "color_list = list(%s)\n" %( ",".join('"%s"="%s"' %(k, "grey") for k,v in d.iteritems()) )
 	return s
 
 
@@ -513,8 +513,8 @@ if __name__ == "__main__":
 #				dons, accs, yd, ya, counts = [], [], [], [], []
 
 			R_script += """
-			density_list$%(id)s = data.frame(x=c(%(x)s), y=c(%(y)s))
-			junction_list$%(id)s = data.frame(x=c(%(dons)s), xend=c(%(accs)s), y=c(%(yd)s), yend=c(%(ya)s), count=c(%(counts)s))
+			density_list[["%(id)s"]] = data.frame(x=c(%(x)s), y=c(%(y)s))
+			junction_list[["%(id)s"]] = data.frame(x=c(%(dons)s), xend=c(%(accs)s), y=c(%(yd)s), yend=c(%(ya)s), count=c(%(counts)s))
 			""" %({
 				"id": k,
 				'x' : ",".join(map(str, x)),
