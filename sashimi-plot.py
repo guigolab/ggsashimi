@@ -14,6 +14,10 @@ def define_options():
 		help="Individual bam file or file with a list of bam files and ids")
 	parser.add_argument("-c", "--coordinates", type=str,
 		help="Genomic region. Format: chr:start-end. Remember that bam coordinates are 0-based")
+	parser.add_argument("-o", "--out-prefix", type=str, dest="out_prefix", default="sashimi",
+		help="Prefix for plot file name [default=%(default)s]")
+	parser.add_argument("-S", "--out-strand", type=str, dest="out_strand", default="both",
+		help="Only for --strand other than 'NONE'. Choose which signal strand to plot: <both> <plus> <minus> [default=%(default)s]")
 	parser.add_argument("-M", "--min_coverage", type=int, default=1,
 		help="Minimum number of reads supporting a junction to be drawn [default=1]")
 	parser.add_argument("-g", "--gtf",
@@ -481,6 +485,7 @@ if __name__ == "__main__":
 #	args.bam = "/nfs/no_backup/rg/epalumbo/projects/tg/work/8b/8b0ac8705f37fd772a06ab7db89f6b/2A_m4_n10_toGenome.bam"
 
 
+	strand_dict = {"plus": "+", "minus": "-"}
 	bam_dict, overlay_dict, color_dict, id_list, label_dict = {"+":{}}, {}, {}, [], {}
 	if args.strand != "NONE": bam_dict["-"] = {}
 
@@ -507,6 +512,14 @@ if __name__ == "__main__":
 
 	for strand in bam_dict:
 
+		# Output file name		
+		out_prefix = args.out_prefix + "_" + strand
+		if args.strand == "NONE":
+			out_prefix = args.out_prefix
+		else:
+			if args.out_strand != "both" and strand != strand_dict[args.out_strand]:
+				continue
+				
 		intersected_introns = None
 
 		if args.shrink:
@@ -640,7 +653,7 @@ if __name__ == "__main__":
 		dev.off()
 
 		""" %({
-			"out": "tmp_%s.pdf" %strand,
+			"out": "%s.pdf" %out_prefix,
 			"args.gtf": int(bool(args.gtf)),
 			"height": 6,
 			})
