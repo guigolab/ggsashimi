@@ -449,6 +449,9 @@ def colorize(d, p, color_factor):
 if __name__ == "__main__":
 
 	parser = define_options()
+	if len(sys.argv)==1:
+	    parser.print_help()
+	    sys.exit(1)
 	args = parser.parse_args()
 
 #	args.coordinates = "chrX:9609491-9612406"
