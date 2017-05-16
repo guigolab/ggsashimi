@@ -479,13 +479,16 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 
 #	args.coordinates = "chrX:9609491-9612406"
-#	args.coordinates = "chrX:9609491-9610000"
+	args.coordinates = "chrX:9609491-9610000"
 #	args.bam = "/nfs/no_backup/rg/epalumbo/projects/tg/work/8b/8b0ac8705f37fd772a06ab7db89f6b/2A_m4_n10_toGenome.bam"
 
 
-	bam_dict, overlay_dict, color_dict = {"+":{}}, {}, {}
+	bam_dict, overlay_dict, color_dict, id_list = {"+":{}}, {}, {}, []
 	if args.strand != "NONE": bam_dict["-"] = {}
+
+	
 	for id, bam, overlay_level, color_level in read_bam_input(args.bam, args.overlay, args.color_factor):
+		id_list.append(id)
 		a, junctions = read_bam(bam, args.coordinates, args.strand)
 		for strand in a:
 		 	bam_dict[strand][id] = prepare_for_R(a[strand], junctions[strand], args.coordinates, args.min_coverage)
@@ -519,8 +522,8 @@ if __name__ == "__main__":
 		R_script += colorize(color_dict, palette, args.color_factor)
 
 
-
-		for i, (k, v) in enumerate(bam_dict[strand].iteritems()):
+		for i, k in enumerate(id_list):
+			v = bam_dict[strand][k]
 			x, y, dons, accs, yd, ya, counts = v
 			if args.shrink:
 				x, y = shrink_density(x, y, intersected_introns)
