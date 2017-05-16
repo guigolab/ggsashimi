@@ -107,6 +107,9 @@ def read_bam(f, c, s):
 	p = sp.Popen("samtools view %s %s " %(f, c), shell=True, stdout=sp.PIPE)
 	for line in p.communicate()[0].strip().split("\n"):
 
+		if line == "":
+			continue
+
 		line_sp = line.strip().split("\t")
 		samflag, read_start, CIGAR = line_sp[1], int(line_sp[3]), line_sp[5]
 
@@ -127,6 +130,9 @@ def read_bam(f, c, s):
 			pos = count_operator(CIGAR_op, CIGAR_len, pos, start, end, a[read_strand], junctions[read_strand], line=line)
 
 	p.stdout.close()
+
+	if a == {"+" : [0] * (end - start)}:
+		print "WARNING: No reads in the specified area."
 
 	return a, junctions
 
