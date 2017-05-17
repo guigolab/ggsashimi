@@ -395,6 +395,7 @@ def gtf_for_ggplot(annotation, start, end, arrow_bins):
 #	gtfp = gtfp + labs(y="m") + theme(axis.title.y=element_text(colour="white"))
 	gtfp = gtfp + labs(y=NULL)
 	gtfp = gtfp + theme(plot.margin=unit(c(0,0,0,0), "npc"))
+	gtfp = gtfp + theme(axis.text.y = element_text(debug=T))
 	""" %(start, end)
 	
 	return s
@@ -404,6 +405,7 @@ def setup_R_script(h, w, b, label_dict):
 	s = """
 	library(ggplot2)
 	library(grid)
+	library(gridExtra)
 	library(data.table)
 
 	scale_lwd = function(r) {
@@ -418,9 +420,7 @@ def setup_R_script(h, w, b, label_dict):
 	theme_set(theme_bw(base_size=base_size))
 	theme_update(
 		panel.grid = element_blank(),
-		plot.margin = unit.c(unit(0,"npc"), unit(0,"npc"), unit(0,"npc"), unit(1,"strwidth","FbGN00000")),
 		axis.line = element_line(size=0.5),
-#		axis.text.y = element_blank(),
 		axis.title.x = element_blank()
 	)
 
@@ -514,8 +514,10 @@ if __name__ == "__main__":
 			color_dict.setdefault(id, color_level)
 
 
+	ann_label_chars = 0
 	if args.gtf:
 		transcripts, exons = read_gtf(args.gtf, args.coordinates)
+		ann_label_chars = max(map(len, transcripts.keys()))
 
 
 	for strand in bam_dict:
@@ -557,6 +559,7 @@ if __name__ == "__main__":
 				dons, accs = shrink_junctions(dons, accs, intersected_introns)
 #				dons, accs, yd, ya, counts = [], [], [], [], []
 
+			# Prepare annotation plot only for the first bam file
 			if i == 0:
 				arrow_bins = 50
 				if args.gtf:
@@ -585,15 +588,17 @@ if __name__ == "__main__":
 		R_script += """
 
 		pdf("%(out)s", h=height, w=width)
-		grid.newpage()
-		pushViewport(viewport(
-			layout = grid.layout(
-				nrow=length(density_list)+%(args.gtf)s, 
-				ncol=1, 
-				heights=unit(c(rep(%(signal_height)s,length(density_list)), %(ann_height)s*%(args.gtf)s), "in")
-				)
-			)
-		)
+#		grid.newpage()
+#		pushViewport(viewport(
+#			layout = grid.layout(
+#				nrow=length(density_list)+%(args.gtf)s, 
+#				ncol=1, 
+#				heights=unit(c(rep(%(signal_height)s,length(density_list)), %(ann_height)s*%(args.gtf)s), "in")
+#				)
+#			)
+#		)
+
+		density_grobs = list();
 
 		for (bam_index in 1:length(density_list)) {
 
@@ -606,9 +611,18 @@ if __name__ == "__main__":
 			# Density plot
 			gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity', fill=color_list[[id]], alpha=1/2)
 			gp = gp + labs(y=labels[[id]])
-			gp = gp + theme(axis.text.y=element_blank())
 			gp = gp + scale_x_continuous(expand=c(0,0.2))
 #			gp = gp + scale_y_continuous(expand=c(0,0))
+			gp = gp + theme(
+#				axis.text.y=element_blank(),
+				axis.title = element_blank(),
+				plot.margin=unit.c(
+					unit(0, 'npc'),
+					unit(0, 'npc'),
+					unit(0, 'npc'),
+					unit(0, 'npc')
+				)
+			)
 			if (bam_index != length(density_list)) {
 				gp = gp + theme(axis.text.x = element_blank())
 			}
@@ -669,12 +683,29 @@ if __name__ == "__main__":
 
 
 			}
-			print(gp, vp=viewport(layout.pos.row = bam_index, layout.pos.col = 1))
-		}
+#			print(gp, vp=viewport(layout.pos.row = bam_index, layout.pos.col = 1))
 
-		if (%(args.gtf)s == 1) {
-			print(gtfp, vp=viewport(layout.pos.row = bam_index+1, layout.pos.col = 1))
+			gpGrob = ggplotGrob(gp);	
+			if (bam_index == 1) {
+				maxWidth = gpGrob$widths[2:5];
+			}
+			
+			maxWidth = grid::unit.pmax(maxWidth, gpGrob$widths[2:5]);
+			density_grobs[[id]] = gpGrob;
 		}
+		if (%(args.gtf)s == 1) {
+			gtfGrob = ggplotGrob(gtfp);
+			maxWidth = grid::unit.pmax(maxWidth, gtfGrob$widths[2:5]);			
+			density_grobs[['gtf']] = gtfGrob;
+#			print(gtfp, vp=viewport(layout.pos.row = bam_index+1, layout.pos.col = 1))
+		}
+	
+
+		for (id in names(density_grobs)) {
+			density_grobs[[id]]$widths[2:5] <- as.list(maxWidth);			
+		}
+	
+		grid.arrange(grobs=density_grobs, ncol=1);
 
 
 		dev.off()
@@ -684,6 +715,7 @@ if __name__ == "__main__":
 			"args.gtf": float(bool(args.gtf)),
 			"signal_height": args.height,
 			"ann_height": args.ann_height,
+			"ann_label_chars": ann_label_chars,
 			})
 
 
