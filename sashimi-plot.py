@@ -392,9 +392,7 @@ def gtf_for_ggplot(annotation, start, end, arrow_bins):
 	}
 	gtfp = gtfp + scale_y_discrete(expand=c(0,0.5))
 	gtfp = gtfp + scale_x_continuous(expand=c(0,0.25), limits = c(%s,%s))
-#	gtfp = gtfp + labs(y="m") + theme(axis.title.y=element_text(colour="white"))
 	gtfp = gtfp + labs(y=NULL)
-	gtfp = gtfp + theme(plot.margin=unit(c(0,0,0,0), "npc"))
 	gtfp = gtfp + theme(axis.text.y = element_text(debug=T))
 	""" %(start, end)
 	
@@ -587,16 +585,7 @@ if __name__ == "__main__":
 
 		R_script += """
 
-		pdf("%(out)s", h=height, w=width)
-#		grid.newpage()
-#		pushViewport(viewport(
-#			layout = grid.layout(
-#				nrow=length(density_list)+%(args.gtf)s, 
-#				ncol=1, 
-#				heights=unit(c(rep(%(signal_height)s,length(density_list)), %(ann_height)s*%(args.gtf)s), "in")
-#				)
-#			)
-#		)
+		pdf("%(out)s", h=height, w=width, onefile=F)   # onefile is to remove the first blank page produced by ggplotGrob
 
 		density_grobs = list();
 
@@ -612,25 +601,14 @@ if __name__ == "__main__":
 			gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity', fill=color_list[[id]], alpha=1/2)
 			gp = gp + labs(y=labels[[id]])
 			gp = gp + scale_x_continuous(expand=c(0,0.2))
-#			gp = gp + scale_y_continuous(expand=c(0,0))
-			gp = gp + theme(
-#				axis.text.y=element_blank(),
-				axis.title = element_blank(),
-				plot.margin=unit.c(
-					unit(0, 'npc'),
-					unit(0, 'npc'),
-					unit(0, 'npc'),
-					unit(0, 'npc')
-				)
-			)
+			gp = gp + theme(axis.title=element_text(debug=T, vjust=0.5))
 			if (bam_index != length(density_list)) {
 				gp = gp + theme(axis.text.x = element_blank())
 			}
 
-
+			# Add junction arcs as annotation grobs
 
 			if (nrow(junctions)>0) {row_i = 1:nrow(junctions)} else {row_i = c()}
-
 
 			for (i in row_i) {
 
@@ -683,7 +661,6 @@ if __name__ == "__main__":
 
 
 			}
-#			print(gp, vp=viewport(layout.pos.row = bam_index, layout.pos.col = 1))
 
 			gpGrob = ggplotGrob(gp);	
 			if (bam_index == 1) {
@@ -693,20 +670,31 @@ if __name__ == "__main__":
 			maxWidth = grid::unit.pmax(maxWidth, gpGrob$widths[2:5]);
 			density_grobs[[id]] = gpGrob;
 		}
+
+		# Annotation grob
 		if (%(args.gtf)s == 1) {
 			gtfGrob = ggplotGrob(gtfp);
 			maxWidth = grid::unit.pmax(maxWidth, gtfGrob$widths[2:5]);			
+			gtfGrob$grobs[[6]]$children[[7]]$gp$col = "blue"
 			density_grobs[['gtf']] = gtfGrob;
-#			print(gtfp, vp=viewport(layout.pos.row = bam_index+1, layout.pos.col = 1))
 		}
-	
 
+		
+
+		# Reassign grob widths to align the plots
 		for (id in names(density_grobs)) {
-			density_grobs[[id]]$widths[2:5] <- as.list(maxWidth);			
+			density_grobs[[id]]$widths[2:5] <- as.list(maxWidth);
 		}
-	
-		grid.arrange(grobs=density_grobs, ncol=1);
 
+		print(density_grobs[[1]]$widths)
+		print(density_grobs[['gtf']]$widths)
+
+#		density_grobs[[1]]$widths[1] <- sum(unit(1,'grobwidth',density_grobs[[1]]), unit(3.5,'pt'))
+#		density_grobs[[1]]$widths[3] <- unit(1,'grobwidth',density_grobs[[1]])
+		
+   
+		grid.arrange(grobs=density_grobs, ncol=1, heights=unit(c(rep(%(signal_height)s,length(density_list)), %(ann_height)s*%(args.gtf)s), "in"));
+#		grid.arrange(grobs=density_grobs, ncol=1);
 
 		dev.off()
 
