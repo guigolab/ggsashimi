@@ -393,7 +393,6 @@ def gtf_for_ggplot(annotation, start, end, arrow_bins):
 	gtfp = gtfp + scale_y_discrete(expand=c(0,0.5))
 	gtfp = gtfp + scale_x_continuous(expand=c(0,0.25), limits = c(%s,%s))
 	gtfp = gtfp + labs(y=NULL)
-	gtfp = gtfp + theme(axis.text.y = element_text(debug=T))
 	""" %(start, end)
 	
 	return s
@@ -601,7 +600,6 @@ if __name__ == "__main__":
 			gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity', fill=color_list[[id]], alpha=1/2)
 			gp = gp + labs(y=labels[[id]])
 			gp = gp + scale_x_continuous(expand=c(0,0.2))
-			gp = gp + theme(axis.title=element_text(debug=T, vjust=0.5))
 			if (bam_index != length(density_list)) {
 				gp = gp + theme(axis.text.x = element_blank())
 			}
@@ -664,18 +662,17 @@ if __name__ == "__main__":
 
 			gpGrob = ggplotGrob(gp);	
 			if (bam_index == 1) {
-				maxWidth = gpGrob$widths[2:5];
+				maxWidth = gpGrob$widths[2] + gpGrob$widths[3];
 			}
 			
-			maxWidth = grid::unit.pmax(maxWidth, gpGrob$widths[2:5]);
+			maxWidth = grid::unit.pmax(maxWidth, gpGrob$widths[2] + gpGrob$widths[3]);
 			density_grobs[[id]] = gpGrob;
 		}
 
 		# Annotation grob
 		if (%(args.gtf)s == 1) {
 			gtfGrob = ggplotGrob(gtfp);
-			maxWidth = grid::unit.pmax(maxWidth, gtfGrob$widths[2:5]);			
-			gtfGrob$grobs[[6]]$children[[7]]$gp$col = "blue"
+			maxWidth = grid::unit.pmax(maxWidth, gtfGrob$widths[2] + gtfGrob$widths[3]);			
 			density_grobs[['gtf']] = gtfGrob;
 		}
 
@@ -683,16 +680,9 @@ if __name__ == "__main__":
 
 		# Reassign grob widths to align the plots
 		for (id in names(density_grobs)) {
-			density_grobs[[id]]$widths[2:5] <- as.list(maxWidth);
+			density_grobs[[id]]$widths[1] <- density_grobs[[id]]$widths[1] + maxWidth - (density_grobs[[id]]$widths[2] + density_grobs[[id]]$widths[3]);
 		}
 
-		print(density_grobs[[1]]$widths)
-		print(density_grobs[['gtf']]$widths)
-
-#		density_grobs[[1]]$widths[1] <- sum(unit(1,'grobwidth',density_grobs[[1]]), unit(3.5,'pt'))
-#		density_grobs[[1]]$widths[3] <- unit(1,'grobwidth',density_grobs[[1]])
-		
-   
 		grid.arrange(grobs=density_grobs, ncol=1, heights=unit(c(rep(%(signal_height)s,length(density_list)), %(ann_height)s*%(args.gtf)s), "in"));
 #		grid.arrange(grobs=density_grobs, ncol=1);
 
