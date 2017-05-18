@@ -40,13 +40,13 @@ def define_options():
 		help="Color palette file. tsv file with >=1 columns, where the color is the first column")
 	parser.add_argument("-L", "--labels", type=int, dest="labels", default=1,
 		help="Index of column with labels (1-based) [default=%(default)s]")
-	parser.add_argument("--height", type=int, default=2,
+	parser.add_argument("--height", type=float, default=2,
 		help="Height of the individual signal plot in inches [default=%(default)s]")
 	parser.add_argument("--ann-height", type=float, default=1.5, dest="ann_height",
 		help="Height of annotation plot in inches [default=%(default)s]")
-	parser.add_argument("--width", type=int, default=10,
+	parser.add_argument("--width", type=float, default=10,
 		help="Width of the plot in inches [default=%(default)s]")
-	parser.add_argument("--base-size", type=int, default=14, dest="base_size",
+	parser.add_argument("--base-size", type=float, default=14, dest="base_size",
 		help="Base character size of the plot in pch [default=%(default)s]")
 #	parser.add_argument("-s", "--smooth", action="store_true", default=False, help="Smooth the signal histogram")
 	return parser
@@ -164,7 +164,7 @@ def read_bam_input(f, overlay, color, label):
 			overlay_level = line_sp[overlay-1] if overlay else None
 			color_level = line_sp[color-1] if color else None
 			label_text = line_sp[label-1] if label else None
-			yield line_sp[0], line_sp[1], '"%s"' %(overlay_level), '"%s"' %(color_level), label_text
+			yield line_sp[0], line_sp[1], '%s' %(overlay_level), '"%s"' %(color_level), label_text
 
 
 def prepare_for_R(a, junctions, c, m):
@@ -521,19 +521,17 @@ if __name__ == "__main__":
 		 	bam_dict[strand][id] = prepare_for_R(a[strand], junctions[strand], args.coordinates, args.min_coverage)
 		if color_level is None:
 			color_dict.setdefault(id, id)
-		if overlay_level != '"None"':
-			overlay_dict.setdefault(overlay_level, []).append(id)
+		if overlay_level != 'None':
+			overlay_dict.setdefault('"%s"' %overlay_level, []).append(id)
+			label_dict[overlay_level] = overlay_level
 			if color_level:
 				color_dict.setdefault(overlay_level, overlay_level)
-		if overlay_level == '"None"':
+		if overlay_level == 'None':
 			color_dict.setdefault(id, color_level)
 
 
-	ann_label_chars = 0
 	if args.gtf:
 		transcripts, exons = read_gtf(args.gtf, args.coordinates)
-		ann_label_chars = max(map(len, transcripts.keys()))
-
 
 	for strand in bam_dict:
 
@@ -544,36 +542,39 @@ if __name__ == "__main__":
 		else:
 			if args.out_strand != "both" and strand != strand_dict[args.out_strand]:
 				continue
-				
+		
+		# Find set of junctions to perform shrink		
 		intersected_introns = None
-
 		if args.shrink:
 			introns = (v for vs in bam_dict[strand].values() for v in zip(vs[2], vs[3]))
 			intersected_introns = list(intersect_introns(introns))
 
+		# Make introns from annotation (they are shrunk if required)
 		if args.gtf:
 		    annotation = make_introns(transcripts, exons, intersected_introns)
 
-		# Define plot height
+		# *** PLOT *** Define plot height
 		bam_height = args.height * len(id_list)
 		if args.overlay:
 			bam_height = args.height * len(overlay_dict)
 		if args.gtf:
 			bam_height += args.ann_height
+
+		# *** PLOT *** Start R script by loading libraries, initializing variables, etc...
 		R_script = setup_R_script(bam_height, args.width, args.base_size, label_dict)
 
 		R_script += colorize(color_dict, palette, args.color_factor)
 
-
+		# Iterate over ids to get bam signal and junctions
 		for i, k in enumerate(id_list):
 			v = bam_dict[strand][k]
 			x, y, dons, accs, yd, ya, counts = v
 			if args.shrink:
 				x, y = shrink_density(x, y, intersected_introns)
 				dons, accs = shrink_junctions(dons, accs, intersected_introns)
-#				dons, accs, yd, ya, counts = [], [], [], [], []
+				#dons, accs, yd, ya, counts = [], [], [], [], []
 
-			# Prepare annotation plot only for the first bam file
+			# *** PLOT *** Prepare annotation plot only for the first bam file
 			if i == 0:
 				arrow_bins = 50
 				if args.gtf:
@@ -609,7 +610,7 @@ if __name__ == "__main__":
 
 			id = names(density_list)[bam_index]
 			d = density_list[[id]]
-			junctions = junction_list[[id]]
+			junctions = data.table(junction_list[[id]])
 
 			maxheight = max(d[['y']])
 
@@ -622,6 +623,9 @@ if __name__ == "__main__":
 			}
 
 			# Add junction arcs as annotation grobs
+			junctions$jlabel = as.character(junctions$count)
+			junctions = setNames(junctions[,.(max(y), max(yend),round(mean(count)),paste(jlabel,collapse=",")), by=.(x,xend)], names(junctions))
+
 
 			if (nrow(junctions)>0) {row_i = 1:nrow(junctions)} else {row_i = c()}
 
@@ -629,8 +633,8 @@ if __name__ == "__main__":
 
 				j_tot_counts = sum(junctions[['count']])
 
-				j = as.numeric(junctions[i,])
-
+				j = as.numeric(junctions[i,1:5])
+			
 				# Find intron midpoint
 				xmid = round(mean(j[1:2]), 1)
 				ymid = max(j[3:4]) * 1.1
@@ -664,7 +668,7 @@ if __name__ == "__main__":
 					curve = xsplineGrob(x=c(1, 1, 0, 0), y=c(0, 1, 1, 1), shape=1, gp=curve_par)
 					gp = gp + annotation_custom(grob = curve, xmid, j[2], j[4], ymid)
 
-					gp = gp + annotate("label", x = xmid, y = ymid, label = j[5],
+					gp = gp + annotate("label", x = xmid, y = ymid, label = as.character(junctions[i,6]),
 						vjust=0.5, hjust=0.5, label.padding=unit(0.01, "lines"),
 						label.size=NA, size=(base_size*0.352777778)*0.6
 					)
@@ -710,7 +714,6 @@ if __name__ == "__main__":
 			"args.gtf": float(bool(args.gtf)),
 			"signal_height": args.height,
 			"ann_height": args.ann_height,
-			"ann_label_chars": ann_label_chars,
 			})
 
 
