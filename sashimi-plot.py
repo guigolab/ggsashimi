@@ -11,7 +11,13 @@ def define_options():
 	# Argument parsing
 	parser = ArgumentParser(description='Create sashimi plot for a given genomic region')
 	parser.add_argument("-b", "--bam", type=str,
-		help="Individual bam file or file with a list of bam files and ids")
+		help="""
+		Individual bam file or file with a list of bam files. 
+		In the case of a list of files the format is tsv:
+		1col: id for bam file,
+		2col: path of bam file,
+		3+col: additional columns
+		""")
 	parser.add_argument("-c", "--coordinates", type=str,
 		help="Genomic region. Format: chr:start-end. Remember that bam coordinates are 0-based")
 	parser.add_argument("-o", "--out-prefix", type=str, dest="out_prefix", default="sashimi",
@@ -30,9 +36,11 @@ def define_options():
 		help="Index of column with overlay levels (1-based)")
 	parser.add_argument("-C", "--color-factor", type=int, dest="color_factor",
 		help="Index of column with color levels (1-based)")
+	parser.add_argument("-P", "--palette", type=int,
+		help="Color palette file. tsv file with >=1 columns, where the color is the first column")
 	parser.add_argument("-L", "--labels", type=int, dest="labels", default=1,
 		help="Index of column with labels (1-based) [default=%(default)s]")
-	parser.add_argument("--height", type=int, default=6,
+	parser.add_argument("--height", type=int, default=2,
 		help="Height of the individual signal plot in inches [default=%(default)s]")
 	parser.add_argument("--ann-height", type=float, default=1.5, dest="ann_height",
 		help="Height of annotation plot in inches [default=%(default)s]")
@@ -242,6 +250,14 @@ def shrink_junctions(dons, accs, introns):
 		shift_don = shift_acc
 	return new_dons, new_accs
 
+def read_palette(f):
+	palette = "#ff0000", "#00ff00", "#0000ff", "#000000"
+	if f:
+		with open(f) as openf:
+			palette = list(line.split("\t")[0].strip() for line in openf)
+	return palette
+
+
 def read_gtf(f, c):
 	exons = {}
 	transcripts = {}
@@ -416,6 +432,7 @@ def setup_R_script(h, w, b, label_dict):
 	base_size = %(b)s
 	theme_set(theme_bw(base_size=base_size))
 	theme_update(
+		plot.margin = unit(c(1,7,7,7), "pt"),
 		panel.grid = element_blank(),
 		axis.line = element_line(size=0.5),
 		axis.title.x = element_blank()
@@ -479,6 +496,8 @@ def colorize(d, p, color_factor):
 
 if __name__ == "__main__":
 
+	strand_dict = {"plus": "+", "minus": "-"}
+
 	parser = define_options()
 	if len(sys.argv)==1:
 	    parser.print_help()
@@ -486,14 +505,13 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 
 #	args.coordinates = "chrX:9609491-9612406"
-	args.coordinates = "chrX:9609491-9610000"
+#	args.coordinates = "chrX:9609491-9610000"
 #	args.bam = "/nfs/no_backup/rg/epalumbo/projects/tg/work/8b/8b0ac8705f37fd772a06ab7db89f6b/2A_m4_n10_toGenome.bam"
 
+	palette = read_palette(args.palette)
 
-	strand_dict = {"plus": "+", "minus": "-"}
 	bam_dict, overlay_dict, color_dict, id_list, label_dict = {"+":{}}, {}, {}, [], {}
 	if args.strand != "NONE": bam_dict["-"] = {}
-
 	
 	for id, bam, overlay_level, color_level, label_text in read_bam_input(args.bam, args.overlay, args.color_factor, args.labels):
 		id_list.append(id)
@@ -543,7 +561,6 @@ if __name__ == "__main__":
 		if args.gtf:
 			bam_height += args.ann_height
 		R_script = setup_R_script(bam_height, args.width, args.base_size, label_dict)
-		palette = "#ff0000", "#000000", "#00ff00"
 
 		R_script += colorize(color_dict, palette, args.color_factor)
 
