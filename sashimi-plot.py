@@ -55,6 +55,7 @@ def define_options():
 
 
 def parse_coordinates(c):
+	c = c.replace(",", "")
 	chr = c.split(":")[0]
 	start, end = c.split(":")[1].split("-")
 	# Convert to 0-based
