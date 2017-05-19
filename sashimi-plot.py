@@ -33,6 +33,8 @@ def define_options():
 		help="Shrink the junctions by a factor for nicer display [default=%(default)s]")
 	parser.add_argument("-O", "--overlay", type=int,
 		help="Index of column with overlay levels (1-based)")
+	parser.add_argument("-A", "--aggr", type=str, 
+		help="Aggregate function for overlay: <mean> <median>. [default=%(default)s")
 	parser.add_argument("-C", "--color-factor", type=int, dest="color_factor",
 		help="Index of column with color levels (1-based)")
 	parser.add_argument("-P", "--palette", type=int,
@@ -208,9 +210,6 @@ def intersect_introns(data):
 			a, b = c, d
 	yield a, b
 
-
-def shrink_annotation(ann):
-	return
 
 
 def shrink_density(x, y, introns):
@@ -451,25 +450,64 @@ def setup_R_script(h, w, b, label_dict):
 	})
 	return s
 
-def density_overlay(d, R_list):
-#	lapply(names(l), function(x) cbind(l[[`x`]], id=x))
-#	setNames(lapply(levels(as.factor(names(v))), function(y) {rbindlist(lapply(v[which(names(v)==y)], function(x) d[[as.character(x)]]))}), levels(as.factor(names(v))))
-	s = """
-	f = data.frame(id=c(%(id)s), fac=rep(c(%(levels)s), c(%(length)s)))
-	%(R_list)s = setNames(
-		lapply(
-			levels(f$fac), function(y) {
-				rbindlist(lapply(subset(f, fac==y)$id, function(x) %(R_list)s[[as.character(x)]]))
-			}
-		),
-		levels(f$fac)
-	)
-	""" %({
-		"levels": ",".join(d.keys()),
-		"id": ",".join(map(str, ('"%s"' %(v) for vs in d.itervalues() for v in vs))),
-		"length": ",".join(map(str, map(len, d.values()))),
-		"R_list": R_list,
-	})
+def median(lst):
+    quotient, remainder = divmod(len(lst), 2)
+    if remainder:
+        return sorted(lst)[quotient]
+    return sum(sorted(lst)[quotient - 1:quotient + 1]) / 2.
+
+def mean(lst):
+	return sum(lst)/len(lst)
+
+
+def make_R_lists(id_list, d, overlay_dict, aggr, intersected_introns):
+	s = ""
+	aggr_f = {
+		"mean": mean,
+		"median": median,
+	}
+	id_list = id_list if not overlay_dict else overlay_dict.keys()
+	# Iterate over ids to get bam signal and junctions
+	for k in id_list:
+		x, y, dons, accs, yd, ya, counts = [], [], [], [], [], [], []
+		if not overlay_dict:
+			x, y, dons, accs, yd, ya, counts = d[k]
+			if intersected_introns:
+				x, y = shrink_density(x, y, intersected_introns)
+				dons, accs = shrink_junctions(dons, accs, intersected_introns)
+		else:
+			for id in overlay_dict[k]:
+				xid, yid, donsid, accsid, ydid, yaid, countsid = d[id]
+				if intersected_introns:
+					xid, yid = shrink_density(xid, yid, intersected_introns)
+					donsid, accsid = shrink_junctions(donsid, accsid, intersected_introns)
+				x += xid
+				y += yid
+				dons += donsid
+				accs += accsid
+				yd += ydid
+				ya += yaid
+				counts += countsid
+			if aggr:
+				x = d[overlay_dict[k][0]][0]
+				y = map(aggr_f[aggr], zip(*(d[id][1] for id in overlay_dict[k])))
+				if intersected_introns:
+					x, y = shrink_density(x, y, intersected_introns)
+			#dons, accs, yd, ya, counts = [], [], [], [], []
+
+		s += """
+		density_list[["%(id)s"]] = data.frame(x=c(%(x)s), y=c(%(y)s))
+		junction_list[["%(id)s"]] = data.frame(x=c(%(dons)s), xend=c(%(accs)s), y=c(%(yd)s), yend=c(%(ya)s), count=c(%(counts)s))
+		""" %({
+			"id": k,
+			'x' : ",".join(map(str, x)),
+			'y' : ",".join(map(str, y)),
+			'dons' : ",".join(map(str, dons)),
+			'accs' : ",".join(map(str, accs)),
+			'yd' : ",".join(map(str, yd)),
+			'ya' : ",".join(map(str, ya)),
+			'counts' : ",".join(map(str, counts)),
+		})
 	return s
 
 
@@ -508,6 +546,10 @@ if __name__ == "__main__":
 #	args.coordinates = "chrX:9609491-9610000"
 #	args.bam = "/nfs/no_backup/rg/epalumbo/projects/tg/work/8b/8b0ac8705f37fd772a06ab7db89f6b/2A_m4_n10_toGenome.bam"
 
+	if args.aggr and not args.overlay:
+		print "ERROR: Cannot apply aggregate function if overlay is not selected."
+		exit(1)
+
 	palette = read_palette(args.palette)
 
 	bam_dict, overlay_dict, color_dict, id_list, label_dict = {"+":{}}, {}, {}, [], {}
@@ -522,7 +564,7 @@ if __name__ == "__main__":
 		if color_level is None:
 			color_dict.setdefault(id, id)
 		if overlay_level != 'None':
-			overlay_dict.setdefault('"%s"' %overlay_level, []).append(id)
+			overlay_dict.setdefault(overlay_level, []).append(id)
 			label_dict[overlay_level] = overlay_level
 			if color_level:
 				color_dict.setdefault(overlay_level, overlay_level)
@@ -549,9 +591,6 @@ if __name__ == "__main__":
 			introns = (v for vs in bam_dict[strand].values() for v in zip(vs[2], vs[3]))
 			intersected_introns = list(intersect_introns(introns))
 
-		# Make introns from annotation (they are shrunk if required)
-		if args.gtf:
-		    annotation = make_introns(transcripts, exons, intersected_introns)
 
 		# *** PLOT *** Define plot height
 		bam_height = args.height * len(id_list)
@@ -565,40 +604,17 @@ if __name__ == "__main__":
 
 		R_script += colorize(color_dict, palette, args.color_factor)
 
-		# Iterate over ids to get bam signal and junctions
-		for i, k in enumerate(id_list):
-			v = bam_dict[strand][k]
-			x, y, dons, accs, yd, ya, counts = v
+		# *** PLOT *** Prepare annotation plot only for the first bam file
+		arrow_bins = 50
+		if args.gtf:
+			# Make introns from annotation (they are shrunk if required)
+			annotation = make_introns(transcripts, exons, intersected_introns)
+			x = bam_dict[strand].values()[0][0]
 			if args.shrink:
-				x, y = shrink_density(x, y, intersected_introns)
-				dons, accs = shrink_junctions(dons, accs, intersected_introns)
-				#dons, accs, yd, ya, counts = [], [], [], [], []
+				x, _ = shrink_density(x, x, intersected_introns)
+			R_script += gtf_for_ggplot(annotation, x[0], x[-1], arrow_bins)
 
-			# *** PLOT *** Prepare annotation plot only for the first bam file
-			if i == 0:
-				arrow_bins = 50
-				if args.gtf:
-					R_script += gtf_for_ggplot(annotation, x[0], x[-1], arrow_bins)
-
-
-			R_script += """
-			
-			density_list[["%(id)s"]] = data.frame(x=c(%(x)s), y=c(%(y)s))
-			junction_list[["%(id)s"]] = data.frame(x=c(%(dons)s), xend=c(%(accs)s), y=c(%(yd)s), yend=c(%(ya)s), count=c(%(counts)s))
-			""" %({
-				"id": k,
-				'x' : ",".join(map(str, x)),
-				'y' : ",".join(map(str, y)),
-				'dons' : ",".join(map(str, dons)),
-				'accs' : ",".join(map(str, accs)),
-				'yd' : ",".join(map(str, yd)),
-				'ya' : ",".join(map(str, ya)),
-				'counts' : ",".join(map(str, counts)),
-			})
-
-		if args.overlay:
-			R_script += density_overlay(overlay_dict, "density_list")
-			R_script += density_overlay(overlay_dict, "junction_list")
+		R_script += make_R_lists(id_list, bam_dict[strand], overlay_dict, args.aggr, intersected_introns)
 
 		R_script += """
 
@@ -609,8 +625,9 @@ if __name__ == "__main__":
 		for (bam_index in 1:length(density_list)) {
 
 			id = names(density_list)[bam_index]
-			d = density_list[[id]]
+			d = data.table(density_list[[id]])
 			junctions = data.table(junction_list[[id]])
+
 
 			maxheight = max(d[['y']])
 
@@ -624,8 +641,11 @@ if __name__ == "__main__":
 
 			# Add junction arcs as annotation grobs
 			junctions$jlabel = as.character(junctions$count)
+		
 			junctions = setNames(junctions[,.(max(y), max(yend),round(mean(count)),paste(jlabel,collapse=",")), by=.(x,xend)], names(junctions))
-
+			if ("%(args.aggr)s" != "None") {
+				junctions = setNames(junctions[,.(max(y), max(yend),round(%(args.aggr)s(count)),round(%(args.aggr)s(count))), by=.(x,xend)], names(junctions))			
+			}
 
 			if (nrow(junctions)>0) {row_i = 1:nrow(junctions)} else {row_i = c()}
 
@@ -634,10 +654,14 @@ if __name__ == "__main__":
 				j_tot_counts = sum(junctions[['count']])
 
 				j = as.numeric(junctions[i,1:5])
+				if ("%(args.aggr)s" != "None") {
+					j[3] = as.numeric(d[x==j[1]-1,y])
+					j[4] = as.numeric(d[x==j[2],y])
+				}
 			
 				# Find intron midpoint
 				xmid = round(mean(j[1:2]), 1)
-				ymid = max(j[3:4]) * 1.1
+				ymid = max(j[3:4]) * 1.2
 
 				# Thickness of the arch
 				lwd = scale_lwd(j[5]/j_tot_counts)
@@ -712,6 +736,7 @@ if __name__ == "__main__":
 		""" %({
 			"out": "%s.pdf" %out_prefix,
 			"args.gtf": float(bool(args.gtf)),
+			"args.aggr": args.aggr,
 			"signal_height": args.height,
 			"ann_height": args.ann_height,
 			})
