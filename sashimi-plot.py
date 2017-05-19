@@ -2,7 +2,6 @@
 
 # Import modules
 from argparse import ArgumentParser
-#from subprocess import Popen, PIPE
 import subprocess as sp
 import sys, re, copy
 
@@ -434,6 +433,7 @@ def setup_R_script(h, w, b, label_dict):
 	theme_update(
 		plot.margin = unit(c(1,7,7,7), "pt"),
 		panel.grid = element_blank(),
+		panel.border = element_blank(),
 		axis.line = element_line(size=0.5),
 		axis.title.x = element_blank()
 	)
