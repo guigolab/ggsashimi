@@ -37,7 +37,7 @@ def define_options():
 		help="Aggregate function for overlay: <mean> <median>. [default=%(default)s")
 	parser.add_argument("-C", "--color-factor", type=int, dest="color_factor",
 		help="Index of column with color levels (1-based)")
-	parser.add_argument("-P", "--palette", type=int,
+	parser.add_argument("-P", "--palette", type=str,
 		help="Color palette file. tsv file with >=1 columns, where the color is the first column")
 	parser.add_argument("-L", "--labels", type=int, dest="labels", default=1,
 		help="Index of column with labels (1-based) [default=%(default)s]")
