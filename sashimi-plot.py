@@ -425,9 +425,9 @@ def setup_R_script(h, w, b, label_dict):
 		return( r*(lmax-lmin)+lmin )
 	}
 
-	height = %(h)s
-	width = %(w)s
 	base_size = %(b)s
+	height = ( %(h)s + base_size*0.352777778/67 ) * 1.02
+	width = %(w)s
 	theme_set(theme_bw(base_size=base_size))
 	theme_update(
 		plot.margin = unit(c(1,7,7,7), "pt"),
@@ -575,6 +575,7 @@ if __name__ == "__main__":
 	if args.gtf:
 		transcripts, exons = read_gtf(args.gtf, args.coordinates)
 
+	# Iterate for plus and minus strand
 	for strand in bam_dict:
 
 		# Output file name		
@@ -708,11 +709,14 @@ if __name__ == "__main__":
 			gpGrob = ggplotGrob(gp);	
 			if (bam_index == 1) {
 				maxWidth = gpGrob$widths[2] + gpGrob$widths[3];
+				x.axis.height = gpGrob$heights[7]
 			}
-			
 			maxWidth = grid::unit.pmax(maxWidth, gpGrob$widths[2] + gpGrob$widths[3]);
 			density_grobs[[id]] = gpGrob;
 		}
+		x.text.height = density_grobs[[id]]$heights[7]
+#		density_grobs[[id]]$heights[6] = unit(%(signal_height)s,"in") - x.axis.height 
+		
 
 		# Annotation grob
 		if (%(args.gtf)s == 1) {
@@ -722,14 +726,20 @@ if __name__ == "__main__":
 		}
 
 		
-
 		# Reassign grob widths to align the plots
 		for (id in names(density_grobs)) {
 			density_grobs[[id]]$widths[1] <- density_grobs[[id]]$widths[1] + maxWidth - (density_grobs[[id]]$widths[2] + density_grobs[[id]]$widths[3]);
 		}
 
-		grid.arrange(grobs=density_grobs, ncol=1, heights=unit(c(rep(%(signal_height)s,length(density_list)), %(ann_height)s*%(args.gtf)s), "in"));
-#		grid.arrange(grobs=density_grobs, ncol=1);
+		grid.arrange(
+			grobs=density_grobs, 
+			ncol=1, 
+			heights = unit.c(
+				unit(rep(%(signal_height)s, length(density_list)-1), "in"),
+				unit(%(signal_height)s, "in") + x.text.height - x.axis.height, 
+				unit(%(ann_height)s*%(args.gtf)s, "in")
+				)
+		);
 
 		dev.off()
 
