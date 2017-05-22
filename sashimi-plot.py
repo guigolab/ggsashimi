@@ -736,7 +736,7 @@ if __name__ == "__main__":
 			grobs=density_grobs, 
 			ncol=1, 
 			heights = unit.c(
-				unit(rep(%(signal_height)s, length(density_list)-1), "in"),
+				unit(c(0, rep(%(signal_height)s, length(density_list)-1) ), "in"),
 				unit(%(signal_height)s, "in") + x.text.height - x.axis.height, 
 				unit(%(ann_height)s*%(args.gtf)s, "in")
 				)
