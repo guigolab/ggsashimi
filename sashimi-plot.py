@@ -739,14 +739,21 @@ if __name__ == "__main__":
 			density_grobs[[id]]$widths[1] <- density_grobs[[id]]$widths[1] + maxWidth - (density_grobs[[id]]$widths[2] + density_grobs[[id]]$widths[3]);
 		}
 
+		heights = unit.c(
+			unit(%(signal_height)s, "in") + x.text.height - x.axis.height, 
+			unit(%(ann_height)s*%(args.gtf)s, "in")
+			)
+		if (length(density_list)>1) {
+			heights = unit.c(
+				unit(c( rep(%(signal_height)s, length(density_list)-1), 0 ), "in"),
+				heights
+			)
+		}
+		
 		grid.arrange(
 			grobs=density_grobs, 
 			ncol=1, 
-			heights = unit.c(
-				unit(c(0, rep(%(signal_height)s, length(density_list)-1) ), "in"),
-				unit(%(signal_height)s, "in") + x.text.height - x.axis.height, 
-				unit(%(ann_height)s*%(args.gtf)s, "in")
-				)
+			heights = heights
 		);
 
 		dev.off()
