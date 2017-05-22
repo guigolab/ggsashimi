@@ -3,7 +3,7 @@
 # Import modules
 from argparse import ArgumentParser
 import subprocess as sp
-import sys, re, copy
+import sys, re, copy, os
 
 
 def define_options():
@@ -163,10 +163,11 @@ def read_bam_input(f, overlay, color, label):
 	with open(f) as openf:
 		for line in openf:
 			line_sp = line.strip().split("\t")
+			bam = line_sp[1]
 			overlay_level = line_sp[overlay-1] if overlay else None
 			color_level = line_sp[color-1] if color else None
 			label_text = line_sp[label-1] if label else None
-			yield line_sp[0], line_sp[1], '%s' %(overlay_level), '"%s"' %(color_level), label_text
+			yield line_sp[0], bam, '%s' %(overlay_level), '"%s"' %(color_level), label_text
 
 
 def prepare_for_R(a, junctions, c, m):
@@ -557,6 +558,8 @@ if __name__ == "__main__":
 	if args.strand != "NONE": bam_dict["-"] = {}
 	
 	for id, bam, overlay_level, color_level, label_text in read_bam_input(args.bam, args.overlay, args.color_factor, args.labels):
+		if not os.path.isfile(bam):
+			continue
 		id_list.append(id)
 		label_dict[id] = label_text
 		a, junctions = read_bam(bam, args.coordinates, args.strand)
@@ -571,7 +574,11 @@ if __name__ == "__main__":
 				color_dict.setdefault(overlay_level, overlay_level)
 		if overlay_level == 'None':
 			color_dict.setdefault(id, color_level)
-
+	
+	# No bam files
+	if not bam_dict["+"]:
+		print "ERROR: No available bam files."
+		exit(1)
 
 	if args.gtf:
 		transcripts, exons = read_gtf(args.gtf, args.coordinates)
