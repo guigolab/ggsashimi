@@ -745,7 +745,7 @@ if __name__ == "__main__":
 			)
 		if (length(density_list)>1) {
 			heights = unit.c(
-				unit(c( rep(%(signal_height)s, length(density_list)-1), 0 ), "in"),
+				unit(rep(%(signal_height)s, length(density_list)-1), "in"),
 				heights
 			)
 		}
