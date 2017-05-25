@@ -629,6 +629,7 @@ if __name__ == "__main__":
 
 		pdf("%(out)s", h=height, w=width, onefile=F)   # onefile is to remove the first blank page produced by ggplotGrob
 
+
 		density_grobs = list();
 
 		for (bam_index in 1:length(density_list)) {
@@ -648,15 +649,18 @@ if __name__ == "__main__":
 				gp = gp + theme(axis.text.x = element_blank())
 			}
 
-			# Add junction arcs as annotation grobs
-			junctions$jlabel = as.character(junctions$count)
-		
-			junctions = setNames(junctions[,.(max(y), max(yend),round(mean(count)),paste(jlabel,collapse=",")), by=.(x,xend)], names(junctions))
-			if ("%(args.aggr)s" != "None") {
-				junctions = setNames(junctions[,.(max(y), max(yend),round(%(args.aggr)s(count)),round(%(args.aggr)s(count))), by=.(x,xend)], names(junctions))			
+			row_i = c()
+			if (nrow(junctions) >0 ) {
+				# Add junction arcs as annotation grobs
+				junctions$jlabel = as.character(junctions$count)
+			
+				junctions = setNames(junctions[,.(max(y), max(yend),round(mean(count)),paste(jlabel,collapse=",")), by=.(x,xend)], names(junctions))
+				if ("%(args.aggr)s" != "None") {
+					junctions = setNames(junctions[,.(max(y), max(yend),round(%(args.aggr)s(count)),round(%(args.aggr)s(count))), by=.(x,xend)], names(junctions))			
+				}
+				# The number of rows has to be calculated after aggregation
+				row_i = 1:nrow(junctions)
 			}
-
-			if (nrow(junctions)>0) {row_i = 1:nrow(junctions)} else {row_i = c()}
 
 			for (i in row_i) {
 
