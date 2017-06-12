@@ -38,6 +38,8 @@ def define_options():
 			Use mean_j | median_j to keep density overlay but aggregate junction counts [default=%(default)s]""")
 	parser.add_argument("-C", "--color-factor", type=int, dest="color_factor",
 		help="Index of column with color levels (1-based)")
+	parser.add_argument("--alpha", type=float, default=0.5,
+		help="Transparency level for density histogram [default=%(default)s]")
 	parser.add_argument("-P", "--palette", type=str,
 		help="Color palette file. tsv file with >=1 columns, where the color is the first column")
 	parser.add_argument("-L", "--labels", type=int, dest="labels", default=1,
@@ -643,7 +645,7 @@ if __name__ == "__main__":
 			maxheight = max(d[['y']])
 
 			# Density plot
-			gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity', fill=color_list[[id]], alpha=1/2)
+			gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity', fill=color_list[[id]], alpha=%(alpha)s)
 			gp = gp + labs(y=labels[[id]])
 			gp = gp + scale_x_continuous(expand=c(0,0.2))
 			if (bam_index != length(density_list)) {
@@ -769,6 +771,7 @@ if __name__ == "__main__":
 			"args.aggr": args.aggr.rstrip("_j"),
 			"signal_height": args.height,
 			"ann_height": args.ann_height,
+			"alpha": args.alpha,
 			})
 
 
