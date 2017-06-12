@@ -706,12 +706,13 @@ if __name__ == "__main__":
 					# Right
 					curve = xsplineGrob(x=c(1, 1, 0, 0), y=c(0, 1, 1, 1), shape=1, gp=curve_par)
 					gp = gp + annotation_custom(grob = curve, xmid, j[2], j[4], ymid)
-
-					gp = gp + annotate("label", x = xmid, y = ymid, label = as.character(junctions[i,6]),
-						vjust=0.5, hjust=0.5, label.padding=unit(0.01, "lines"),
-						label.size=NA, size=(base_size*0.352777778)*0.6
-					)
 				}
+				
+				# Add junction labels
+				gp = gp + annotate("label", x = xmid, y = ymid, label = as.character(junctions[i,6]),
+					vjust=0.5, hjust=0.5, label.padding=unit(0.01, "lines"),
+					label.size=NA, size=(base_size*0.352777778)*0.6
+				)
 
 
 		#		gp = gp + annotation_custom(grob = rectGrob(x=0, y=0, gp=gpar(col="red"), just=c("left","bottom")), xmid, j[2], j[4], ymid)
