@@ -423,6 +423,7 @@ def setup_R_script(h, w, b, label_dict):
 	library(grid)
 	library(gridExtra)
 	library(data.table)
+	library(gtable)
 
 	scale_lwd = function(r) {
 		lmin = 0.1
@@ -435,7 +436,7 @@ def setup_R_script(h, w, b, label_dict):
 	width = %(w)s
 	theme_set(theme_bw(base_size=base_size))
 	theme_update(
-		plot.margin = unit(c(1,7,7,7), "pt"),
+		plot.margin = unit(c(3,7,7,7), "pt"),
 		panel.grid = element_blank(),
 		panel.border = element_blank(),
 		axis.line = element_line(size=0.5),
@@ -648,22 +649,20 @@ if __name__ == "__main__":
 			gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity', fill=color_list[[id]], alpha=%(alpha)s)
 			gp = gp + labs(y=labels[[id]])
 			gp = gp + scale_x_continuous(expand=c(0,0.2))
-			if (bam_index != length(density_list)) {
-				gp = gp + theme(axis.text.x = element_blank())
-			}
 
+			# Aggregate junction counts
 			row_i = c()
 			if (nrow(junctions) >0 ) {
-				# Add junction arcs as annotation grobs
+
 				junctions$jlabel = as.character(junctions$count)
-			
-				junctions = setNames(junctions[,.(max(y), max(yend),round(mean(count)),paste(jlabel,collapse=",")), by=.(x,xend)], names(junctions))
+				junctions = setNames(junctions[,.(max(y), max(yend),round(mean(count)),paste(jlabel,collapse=",")), keyby=.(x,xend)], names(junctions))
 				if ("%(args.aggr)s" != "None") {
-					junctions = setNames(junctions[,.(max(y), max(yend),round(%(args.aggr)s(count)),round(%(args.aggr)s(count))), by=.(x,xend)], names(junctions))			
+					junctions = setNames(junctions[,.(max(y), max(yend),round(%(args.aggr)s(count)),round(%(args.aggr)s(count))), keyby=.(x,xend)], names(junctions))	
 				}
-				# The number of rows has to be calculated after aggregation
+				# The number of rows (unique junctions per bam) has to be calculated after aggregation
 				row_i = 1:nrow(junctions)
 			}
+
 
 			for (i in row_i) {
 
@@ -684,12 +683,12 @@ if __name__ == "__main__":
 
 				curve_par = gpar(lwd=lwd, col=color_list[[id]])
 
+				# Arc grobs
+
 				# Choose position of the arch (top or bottom)
-#				nss = sum(junctions[,1] %%in%% j[1])
-#				nss = i
-				nss = 1
+				nss = i
 				if (nss%%%%2 == 0) {  #bottom
-					ymid = -0.4 * maxheight
+					ymid = -0.3 * maxheight
 					# Draw the arcs
 					# Left
 					curve = xsplineGrob(x=c(0, 0, 1, 1), y=c(1, 0, 0, 0), shape=1, gp=curve_par)
@@ -722,43 +721,47 @@ if __name__ == "__main__":
 			}
 
 			gpGrob = ggplotGrob(gp);	
+			gpGrob$layout$clip[gpGrob$layout$name=="panel"] <- "off"
 			if (bam_index == 1) {
 				maxWidth = gpGrob$widths[2] + gpGrob$widths[3];
 				x.axis.height = gpGrob$heights[7]
+				# Extract x axis grob (trim=F --> keep empty cells)
+				xaxisGrob <- gtable_filter(gpGrob, "axis-b", trim=F)
 			}
+
+
+			# Remove x axis from all density plots
+			kept_names = gpGrob$layout$name[gpGrob$layout$name != "axis-b"]
+			gpGrob <- gtable_filter(gpGrob, paste(kept_names, sep="", collapse="|"), trim=F)
+
 			maxWidth = grid::unit.pmax(maxWidth, gpGrob$widths[2] + gpGrob$widths[3]);
 			density_grobs[[id]] = gpGrob;
 		}
-		x.text.height = density_grobs[[id]]$heights[7]
-#		density_grobs[[id]]$heights[6] = unit(%(signal_height)s,"in") - x.axis.height 
-		
 
+		# Add x axis grob after density grobs BEFORE annotation grob	
+		density_grobs[["xaxis"]] = xaxisGrob
+	
 		# Annotation grob
 		if (%(args.gtf)s == 1) {
 			gtfGrob = ggplotGrob(gtfp);
 			maxWidth = grid::unit.pmax(maxWidth, gtfGrob$widths[2] + gtfGrob$widths[3]);			
 			density_grobs[['gtf']] = gtfGrob;
 		}
-
 		
 		# Reassign grob widths to align the plots
 		for (id in names(density_grobs)) {
 			density_grobs[[id]]$widths[1] <- density_grobs[[id]]$widths[1] + maxWidth - (density_grobs[[id]]$widths[2] + density_grobs[[id]]$widths[3]);
 		}
 
+		# Heights for density, x axis and annotation
 		heights = unit.c(
-			unit(%(signal_height)s, "in") + x.text.height - x.axis.height, 
+			unit(rep(%(signal_height)s, length(density_list)), "in"),
+			x.axis.height, 
 			unit(%(ann_height)s*%(args.gtf)s, "in")
 			)
-		if (length(density_list)>1) {
-			heights = unit.c(
-				unit(rep(%(signal_height)s, length(density_list)-1), "in"),
-				heights
-			)
-		}
 		
 		grid.arrange(
-			grobs=density_grobs, 
+			grobs=density_grobs,
 			ncol=1, 
 			heights = heights
 		);
