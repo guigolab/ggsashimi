@@ -412,6 +412,7 @@ def gtf_for_ggplot(annotation, start, end, arrow_bins):
 	gtfp = gtfp + scale_y_discrete(expand=c(0,0.5))
 	gtfp = gtfp + scale_x_continuous(expand=c(0,0.25), limits = c(%s,%s))
 	gtfp = gtfp + labs(y=NULL)
+	gtfp = gtfp + theme(axis.line = element_blank(), axis.text.x = element_blank(), axis.ticks = element_blank())
 	""" %(start, end)
 	
 	return s
@@ -440,7 +441,8 @@ def setup_R_script(h, w, b, label_dict):
 		panel.grid = element_blank(),
 		panel.border = element_blank(),
 		axis.line = element_line(size=0.5),
-		axis.title.x = element_blank()
+		axis.title.x = element_blank(),
+		axis.title.y = element_text(angle=0, vjust=0.5)
 	)
 
 	labels = list(%(labels)s)
@@ -725,6 +727,7 @@ if __name__ == "__main__":
 			gpGrob$layout$clip[gpGrob$layout$name=="panel"] <- "off"
 			if (bam_index == 1) {
 				maxWidth = gpGrob$widths[2] + gpGrob$widths[3];
+				maxYtextWidth = gpGrob$widths[3];
 				x.axis.height = gpGrob$heights[7]
 				# Extract x axis grob (trim=F --> keep empty cells)
 				xaxisGrob <- gtable_filter(gpGrob, "axis-b", trim=F)
@@ -735,7 +738,9 @@ if __name__ == "__main__":
 			kept_names = gpGrob$layout$name[gpGrob$layout$name != "axis-b"]
 			gpGrob <- gtable_filter(gpGrob, paste(kept_names, sep="", collapse="|"), trim=F)
 
+			# Find max width of y text and y label and max width of y text
 			maxWidth = grid::unit.pmax(maxWidth, gpGrob$widths[2] + gpGrob$widths[3]);
+			maxYtextWidth = grid::unit.pmax(maxYtextWidth, gpGrob$widths[3]);
 			density_grobs[[id]] = gpGrob;
 		}
 
@@ -751,7 +756,8 @@ if __name__ == "__main__":
 		
 		# Reassign grob widths to align the plots
 		for (id in names(density_grobs)) {
-			density_grobs[[id]]$widths[1] <- density_grobs[[id]]$widths[1] + maxWidth - (density_grobs[[id]]$widths[2] + density_grobs[[id]]$widths[3]);
+			density_grobs[[id]]$widths[1] <- density_grobs[[id]]$widths[1] + maxWidth - (density_grobs[[id]]$widths[2] + maxYtextWidth);
+			density_grobs[[id]]$widths[3] <- maxYtextWidth
 		}
 
 		# Heights for density, x axis and annotation
