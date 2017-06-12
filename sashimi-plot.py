@@ -34,7 +34,8 @@ def define_options():
 	parser.add_argument("-O", "--overlay", type=int,
 		help="Index of column with overlay levels (1-based)")
 	parser.add_argument("-A", "--aggr", type=str, 
-		help="Aggregate function for overlay: <mean> <median>. [default=%(default)s")
+		help="""Aggregate function for overlay: <mean> <median> <mean_j> <median_j>. 
+			Use mean_j | median_j to keep density overlay but aggregate junction counts [default=%(default)s]""")
 	parser.add_argument("-C", "--color-factor", type=int, dest="color_factor",
 		help="Index of column with color levels (1-based)")
 	parser.add_argument("-P", "--palette", type=str,
@@ -490,7 +491,7 @@ def make_R_lists(id_list, d, overlay_dict, aggr, intersected_introns):
 				yd += ydid
 				ya += yaid
 				counts += countsid
-			if aggr:
+			if aggr and "_j" not in aggr:
 				x = d[overlay_dict[k][0]][0]
 				y = map(aggr_f[aggr], zip(*(d[id][1] for id in overlay_dict[k])))
 				if intersected_introns:
@@ -765,7 +766,7 @@ if __name__ == "__main__":
 		""" %({
 			"out": "%s.pdf" %out_prefix,
 			"args.gtf": float(bool(args.gtf)),
-			"args.aggr": args.aggr,
+			"args.aggr": args.aggr.rstrip("_j"),
 			"signal_height": args.height,
 			"ann_height": args.ann_height,
 			})
