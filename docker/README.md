@@ -1,6 +1,6 @@
 # Docker image
 
-A `ggsashimi` Docker image is available in the [Docker Hub](https://hub.docker.com/r/guigolab/ggsashimi/) and can be obtained as follows:
+A public `ggsashimi` Docker image is available in the [Docker Hub](https://hub.docker.com/r/guigolab/ggsashimi/) and can be obtained as follows:
 
 ```
 docker pull guigolab/ggsashimi
