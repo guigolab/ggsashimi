@@ -170,7 +170,7 @@ def read_bam_input(f, overlay, color, label):
 			overlay_level = line_sp[overlay-1] if overlay else None
 			color_level = line_sp[color-1] if color else None
 			label_text = line_sp[label-1] if label else None
-			yield line_sp[0], bam, overlay_level, '"%s"' %(color_level), label_text
+			yield line_sp[0], bam, overlay_level, color_level, label_text
 
 
 def prepare_for_R(a, junctions, c, m):
@@ -575,8 +575,7 @@ if __name__ == "__main__":
 		if overlay_level is not None:
 			overlay_dict.setdefault(overlay_level, []).append(id)
 			label_dict[overlay_level] = overlay_level
-			if color_level:
-				color_dict.setdefault(overlay_level, overlay_level)
+			color_dict.setdefault(overlay_level, overlay_level)
 		if overlay_level is None:
 			color_dict.setdefault(id, color_level)
 	
