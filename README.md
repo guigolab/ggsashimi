@@ -20,7 +20,7 @@ git clone https://github.com/guigolab/ggsashimi.git
 ```
 To avoid dependecies issues, the script is also available through a docker image.
 
-## Docker image
+### Docker image
 
 A public `ggsashimi` Docker image is available in the [Docker Hub](https://hub.docker.com/r/guigolab/ggsashimi/) and can be downloaded as follows:
 
@@ -33,7 +33,7 @@ docker run guigolab/ggsashimi --help
 ```
 Alternatively, we provide the Dockerfile if you want to build your local docker image.
 
-## Build docker image
+### Build docker image
 
 After downloading the repository, move inside the repository folder:
 ```
