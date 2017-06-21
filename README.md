@@ -2,7 +2,7 @@
 Command-line tool for the visualization of splicing events across multiple samples
 
 ## Installation
-The ggsashimi script can be directly downloaded from this repository:
+The `ggsashimi` script can be directly downloaded from this repository:
 ```
 wget https://raw.githubusercontent.com/guigolab/ggsashimi/master/sashimi-plot.py
 ```
@@ -20,21 +20,16 @@ git clone https://github.com/guigolab/ggsashimi.git
 ```
 To avoid dependecies issues, the script is also available through a docker image.
 
-### Docker image
+### Download docker image
 
 A public `ggsashimi` Docker image is available in the [Docker Hub](https://hub.docker.com/r/guigolab/ggsashimi/) and can be downloaded as follows:
-
 ```
 docker pull guigolab/ggsashimi
 ```
-To execute ggsashimi with docker:
-```
-docker run guigolab/ggsashimi --help
-```
 Alternatively, we provide the Dockerfile if you want to build your local docker image.
 
-### Build docker image
 
+### Build docker image
 After downloading the repository, move inside the repository folder:
 ```
 git clone https://github.com/guigolab/ggsashimi.git
@@ -44,7 +39,11 @@ To build the docker image run the following command:
 ```
 docker build -f docker/Dockerfile -t guigolab/ggsashimi .
 ```
-This can take several minutes. After the image is built, ggsashimi can be executed as follows:
+This can take several minutes. 
+
+
+### Use docker image
+Once the image is downloaded or built, to execute ggsashimi with docker:
 ```
 docker run guigolab/ggsashimi --help
 ```
