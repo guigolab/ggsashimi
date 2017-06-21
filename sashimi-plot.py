@@ -161,7 +161,7 @@ def read_bam(f, c, s):
 def read_bam_input(f, overlay, color, label):
 	if f.endswith(".bam"):
 		bn = f.strip().split("/")[-1].strip(".bam")
-		yield bn, f, None, None, None
+		yield bn, f, None, None, bn
 		return
 	with open(f) as openf:
 		for line in openf:
@@ -170,7 +170,7 @@ def read_bam_input(f, overlay, color, label):
 			overlay_level = line_sp[overlay-1] if overlay else None
 			color_level = line_sp[color-1] if color else None
 			label_text = line_sp[label-1] if label else None
-			yield line_sp[0], bam, '%s' %(overlay_level), '"%s"' %(color_level), label_text
+			yield line_sp[0], bam, overlay_level, '"%s"' %(color_level), label_text
 
 
 def prepare_for_R(a, junctions, c, m):
@@ -502,7 +502,6 @@ def make_R_lists(id_list, d, overlay_dict, aggr, intersected_introns):
 				if intersected_introns:
 					x, y = shrink_density(x, y, intersected_introns)
 			#dons, accs, yd, ya, counts = [], [], [], [], []
-
 		s += """
 		density_list[["%(id)s"]] = data.frame(x=c(%(x)s), y=c(%(y)s))
 		junction_list[["%(id)s"]] = data.frame(x=c(%(dons)s), xend=c(%(accs)s), y=c(%(yd)s), yend=c(%(ya)s), count=c(%(counts)s))
@@ -573,12 +572,12 @@ if __name__ == "__main__":
 		 	bam_dict[strand][id] = prepare_for_R(a[strand], junctions[strand], args.coordinates, args.min_coverage)
 		if color_level is None:
 			color_dict.setdefault(id, id)
-		if overlay_level != 'None':
+		if overlay_level is not None:
 			overlay_dict.setdefault(overlay_level, []).append(id)
 			label_dict[overlay_level] = overlay_level
 			if color_level:
 				color_dict.setdefault(overlay_level, overlay_level)
-		if overlay_level == 'None':
+		if overlay_level is None:
 			color_dict.setdefault(id, color_level)
 	
 	# No bam files
@@ -635,7 +634,6 @@ if __name__ == "__main__":
 
 		pdf("%(out)s", h=height, w=width, onefile=F)   # onefile is to remove the first blank page produced by ggplotGrob
 
-
 		density_grobs = list();
 
 		for (bam_index in 1:length(density_list)) {
@@ -643,7 +641,6 @@ if __name__ == "__main__":
 			id = names(density_list)[bam_index]
 			d = data.table(density_list[[id]])
 			junctions = data.table(junction_list[[id]])
-
 
 			maxheight = max(d[['y']])
 
