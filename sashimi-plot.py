@@ -765,7 +765,7 @@ if __name__ == "__main__":
 			)
 		
 		grid.arrange(
-			grobs=list(density_grobs[[2]], density_grobs[[2]]),
+			grobs=density_grobs,
 			ncol=1, 
 			heights = heights
 		);
