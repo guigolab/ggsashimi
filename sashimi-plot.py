@@ -33,7 +33,7 @@ def define_options():
 		help="Shrink the junctions by a factor for nicer display [default=%(default)s]")
 	parser.add_argument("-O", "--overlay", type=int,
 		help="Index of column with overlay levels (1-based)")
-	parser.add_argument("-A", "--aggr", type=str, 
+	parser.add_argument("-A", "--aggr", type=str, default="", 
 		help="""Aggregate function for overlay: <mean> <median> <mean_j> <median_j>. 
 			Use mean_j | median_j to keep density overlay but aggregate junction counts [default=%(default)s]""")
 	parser.add_argument("-C", "--color-factor", type=int, dest="color_factor",
@@ -658,7 +658,7 @@ if __name__ == "__main__":
 
 				junctions$jlabel = as.character(junctions$count)
 				junctions = setNames(junctions[,.(max(y), max(yend),round(mean(count)),paste(jlabel,collapse=",")), keyby=.(x,xend)], names(junctions))
-				if ("%(args.aggr)s" != "None") {
+				if ("%(args.aggr)s" != "") {
 					junctions = setNames(junctions[,.(max(y), max(yend),round(%(args.aggr)s(count)),round(%(args.aggr)s(count))), keyby=.(x,xend)], names(junctions))	
 				}
 				# The number of rows (unique junctions per bam) has to be calculated after aggregation
@@ -671,7 +671,7 @@ if __name__ == "__main__":
 				j_tot_counts = sum(junctions[['count']])
 
 				j = as.numeric(junctions[i,1:5])
-				if ("%(args.aggr)s" != "None") {
+				if ("%(args.aggr)s" != "") {
 					j[3] = as.numeric(d[x==j[1]-1,y])
 					j[4] = as.numeric(d[x==j[2],y])
 				}
