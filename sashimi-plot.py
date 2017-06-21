@@ -724,9 +724,10 @@ if __name__ == "__main__":
 			if (bam_index == 1) {
 				maxWidth = gpGrob$widths[2] + gpGrob$widths[3];
 				maxYtextWidth = gpGrob$widths[3];
-				x.axis.height = gpGrob$heights[7]
 				# Extract x axis grob (trim=F --> keep empty cells)
 				xaxisGrob <- gtable_filter(gpGrob, "axis-b", trim=F)
+				xaxisGrob$heights[8] = gpGrob$heights[10]
+				x.axis.height = gpGrob$heights[7] + gpGrob$heights[10]
 			}
 
 
@@ -764,7 +765,7 @@ if __name__ == "__main__":
 			)
 		
 		grid.arrange(
-			grobs=density_grobs,
+			grobs=list(density_grobs[[2]], density_grobs[[2]]),
 			ncol=1, 
 			heights = heights
 		);
