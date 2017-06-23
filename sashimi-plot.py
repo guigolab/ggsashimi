@@ -151,10 +151,6 @@ def read_bam(f, c, s):
 			pos = count_operator(CIGAR_op, CIGAR_len, pos, start, end, a[read_strand], junctions[read_strand], line=line)
 
 	p.stdout.close()
-
-	if a == {"+" : [0] * (end - start)}:
-		print "WARNING: No reads in the specified area."
-
 	return a, junctions
 
 
@@ -568,6 +564,9 @@ if __name__ == "__main__":
 		id_list.append(id)
 		label_dict[id] = label_text
 		a, junctions = read_bam(bam, args.coordinates, args.strand)
+		if a == {"+" : [0] * (end - start)}:
+			print "ERROR: No reads in the specified area."
+			exit(1)
 		for strand in a:
 		 	bam_dict[strand][id] = prepare_for_R(a[strand], junctions[strand], args.coordinates, args.min_coverage)
 		if color_level is None:
