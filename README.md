@@ -65,4 +65,4 @@ docker run -w $PWD -v $PWD:$PWD -v $f:$f guigolab/ggsashimi -b examples/input_ba
 ```
 
 ## Usage
-Execute the script with '--help' option for a complete list of options.
+Execute the script with `--help` option for a complete list of options.
