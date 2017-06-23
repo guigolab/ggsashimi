@@ -56,7 +56,7 @@ The '-w' option sets the working directory inside the container to the current d
 The '-v' option mounts the current working directory and all child folders inside the container to the same path (host_path:container_path).
 If your files are in another folder, for example the annotation file is stored in a different folder then the one containing the bam file, you can mount extra folders like this:
 ```
-f="$DIR/ann.gtf"
+f="$DIR/annotation.gtf"
 docker run -w $PWD -v $PWD:$PWD -v $DIR:$DIR guigolab/ggsashimi -b examples/input_bams.tsv -c chr10:27040584-27048100 -g $f
 ```
 You can even mount a single file:
