@@ -590,6 +590,8 @@ if __name__ == "__main__":
 	for strand in bam_dict:
 
 		# Output file name		
+		if args.out_prefix.endswith('.pdf'):
+			args.out_prefix = os.path.splitext(args.out_prefix)[0]
 		out_prefix = args.out_prefix + "_" + strand
 		if args.strand == "NONE":
 			out_prefix = args.out_prefix
