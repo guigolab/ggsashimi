@@ -32,7 +32,6 @@ Alternatively, we provide the Dockerfile if you want to build your local docker 
 ### Build docker image
 After downloading the repository, move inside the repository folder:
 ```
-git clone https://github.com/guigolab/ggsashimi.git
 cd ggsashimi
 ```
 To build the docker image run the following command:
@@ -47,3 +46,23 @@ Once the image is downloaded or built, to execute ggsashimi with docker:
 ```
 docker run guigolab/ggsashimi --help
 ```
+Because the image is used in a docker container which has its own file system, to use the program with local files, a host data volume needs to be mounted.
+
+As an example, you can run this command from the main repository folder:
+```
+docker run -w $PWD -v $PWD:$PWD guigolab/ggsashimi -b examples/input_bams.tsv -c chr10:27040584-27048100
+```
+The '-w' option sets the working directory inside the container to the current directory.
+The '-v' option mounts the current working directory and all child folders inside the container to the same path (host_path:container_path).
+If your files are in another folder, for example the annotation file is stored in a different folder then the one containing the bam file, you can mount extra folders like this:
+```
+f="$DIR/ann.gtf"
+docker run -w $PWD -v $PWD:$PWD -v $DIR:$DIR guigolab/ggsashimi -b examples/input_bams.tsv -c chr10:27040584-27048100 -g $f
+```
+You can even mount a single file:
+```
+docker run -w $PWD -v $PWD:$PWD -v $f:$f guigolab/ggsashimi -b examples/input_bams.tsv -c chr10:27040584-27048100 -g $f
+```
+
+## Usage
+Execute the script with '--help' option for a complete list of options.
