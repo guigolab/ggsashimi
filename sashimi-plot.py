@@ -564,7 +564,7 @@ if __name__ == "__main__":
 		id_list.append(id)
 		label_dict[id] = label_text
 		a, junctions = read_bam(bam, args.coordinates, args.strand)
-		if a == {"+" : [0] * (end - start)}:
+		if a.keys() == ["+"] and all(map(lambda x: x==0, a.values()[0])):
 			print "ERROR: No reads in the specified area."
 			exit(1)
 		for strand in a:
