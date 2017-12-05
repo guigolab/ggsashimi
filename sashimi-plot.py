@@ -153,6 +153,11 @@ def read_bam(f, c, s):
 	p.stdout.close()
 	return a, junctions
 
+def get_bam_path(index, path):
+	if os.path.isabs(path):
+		return path
+	base_dir = os.path.dirname(index)
+	return os.path.join(base_dir, path)
 
 def read_bam_input(f, overlay, color, label):
 	if f.endswith(".bam"):
@@ -162,7 +167,7 @@ def read_bam_input(f, overlay, color, label):
 	with open(f) as openf:
 		for line in openf:
 			line_sp = line.strip().split("\t")
-			bam = line_sp[1]
+			bam = get_bam_path(f, line_sp[1])
 			overlay_level = line_sp[overlay-1] if overlay else None
 			color_level = line_sp[color-1] if color else None
 			label_text = line_sp[label-1] if label else None
