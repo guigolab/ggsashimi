@@ -653,8 +653,9 @@ if __name__ == "__main__":
 			gp = ggplot(d) + geom_bar(aes(x, y), position='identity', stat='identity', fill=color_list[[id]], alpha=%(alpha)s)
 			gp = gp + labs(y=labels[[id]])
 			gp = gp + scale_x_continuous(expand=c(0,0.2))
-
-			# Aggregate junction counts
+                        gp = gp + scale_y_continuous(breaks=ggplot_build(gp)$layout$panel_ranges[[1]]$y.major_source)
+			
+                        # Aggregate junction counts
 			row_i = c()
 			if (nrow(junctions) >0 ) {
 
