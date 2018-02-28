@@ -1,7 +1,11 @@
 # ggsashimi
+
+[![Build Status](https://travis-ci.org/guigolab/ggsashimi.svg?branch=master)](https://travis-ci.org/guigolab/ggsashimi)
+
 Command-line tool for the visualization of splicing events across multiple samples
 
 ## Installation
+
 The `ggsashimi` script can be directly downloaded from this repository:
 ```
 wget https://raw.githubusercontent.com/guigolab/ggsashimi/master/sashimi-plot.py
