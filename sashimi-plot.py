@@ -52,6 +52,10 @@ def define_options():
 		help="Width of the plot in inches [default=%(default)s]")
 	parser.add_argument("--base-size", type=float, default=14, dest="base_size",
 		help="Base character size of the plot in pch [default=%(default)s]")
+	parser.add_argument("-F", "--out-format", type=str, default="pdf", dest="out_format",
+		help="Output file format: <pdf> <svg> <png> <jpeg> <tiff> [default=%(default)s]")
+	parser.add_argument("-R", "--out-resolution", type=int, default=300, dest="out_resolution",
+		help="Output file resolution in PPI (pixels per inch). Applies only to raster output formats")
 #	parser.add_argument("-s", "--smooth", action="store_true", default=False, help="Smooth the signal histogram")
 	return parser
 
@@ -594,9 +598,18 @@ if __name__ == "__main__":
 	# Iterate for plus and minus strand
 	for strand in bam_dict:
 
-		# Output file name		
-		if args.out_prefix.endswith('.pdf'):
-			args.out_prefix = os.path.splitext(args.out_prefix)[0]
+		# Output file name (allow tiff/tif and jpeg/jpg extensions)		
+		if args.out_prefix.endswith(('.pdf', '.png', '.svg', '.tiff', '.tif', '.jpeg', '.jpg')):
+                	out_split = os.path.splitext(args.out_prefix)
+			if (args.out_format == out_split[1][1:] or
+			args.out_format == 'tiff' and out_split[1] in ('.tiff','.tif') or
+			args.out_format == 'jpeg' and out_split[1] in ('.jpeg','.jpg')):
+				args.out_prefix = out_split[0]
+				out_suffix = out_split[1][1:]
+			else:
+				out_suffix = args.out_format
+		else:
+			out_suffix = args.out_format
 		out_prefix = args.out_prefix + "_" + strand
 		if args.strand == "NONE":
 			out_prefix = args.out_prefix
@@ -637,8 +650,8 @@ if __name__ == "__main__":
 
 		R_script += """
 
-		pdf("%(out)s", h=height, w=width, onefile=F)   # onefile is to remove the first blank page produced by ggplotGrob
-
+		pdf(NULL) # just to remove the blank pdf produced by ggplotGrob
+          
 		density_grobs = list();
 
 		for (bam_index in 1:length(density_list)) {
@@ -771,17 +784,28 @@ if __name__ == "__main__":
 			x.axis.height, 
 			unit(%(ann_height)s*%(args.gtf)s, "in")
 			)
-		
-		grid.arrange(
+ 
+		# Arrange grobs
+		argrobs = arrangeGrob(
 			grobs=density_grobs,
-			ncol=1, 
-			heights = heights
+			ncol=1,
+			heights = heights,
 		);
+                
+		dev.log = dev.off()  
 
-		dev.off()
-
+                # Save plot to file in the requested format
+		if ("%(out_format)s" == "tiff"){ 
+			# TIFF images will be lzw-compressed
+			ggsave("%(out)s", plot = argrobs, device = "tiff", width = width, height = height, units = "in", dpi = %(out_resolution)s, compression = "lzw")
+		} else {
+			ggsave("%(out)s", plot = argrobs, device = "%(out_format)s", width = width, height = height, units = "in", dpi = %(out_resolution)s)
+		}
+		
 		""" %({
-			"out": "%s.pdf" %out_prefix,
+			"out": "%s.%s" % (out_prefix, out_suffix),
+			"out_format": args.out_format,
+			"out_resolution": args.out_resolution,
 			"args.gtf": float(bool(args.gtf)),
 			"args.aggr": args.aggr.rstrip("_j"),
 			"signal_height": args.height,
@@ -792,9 +816,3 @@ if __name__ == "__main__":
 
 		plot(R_script)
 	exit()
-
-
-
-
-
-
