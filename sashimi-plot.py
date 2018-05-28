@@ -35,7 +35,7 @@ def define_options():
 		help="Index of column with overlay levels (1-based)")
 	parser.add_argument("-A", "--aggr", type=str, default="", 
 		help="""Aggregate function for overlay: <mean> <median> <mean_j> <median_j>. 
-			Use mean_j | median_j to keep density overlay but aggregate junction counts [default=%(default)s]""")
+			Use mean_j | median_j to keep density overlay but aggregate junction counts [default=no aggregation]""")
 	parser.add_argument("-C", "--color-factor", type=int, dest="color_factor",
 		help="Index of column with color levels (1-based)")
 	parser.add_argument("--alpha", type=float, default=0.5,
