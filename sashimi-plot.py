@@ -663,7 +663,7 @@ if __name__ == "__main__":
 			maxheight = max(d[['y']])
 
 			# Density plot
-			gp = ggplot(d) + geom_bar(aes(x, y), width=1, position=position_dodge(width=1), stat='identity', fill=color_list[[id]], alpha=%(alpha)s)
+			gp = ggplot(d) + geom_bar(aes(x, y), width=1, position='identity', stat='identity', fill=color_list[[id]], alpha=%(alpha)s)
 			gp = gp + labs(y=labels[[id]])
 			gp = gp + scale_x_continuous(expand=c(0,0.2))
                         gp = gp + scale_y_continuous(breaks=ggplot_build(gp)$layout$panel_ranges[[1]]$y.major_source)
