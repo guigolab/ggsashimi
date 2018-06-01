@@ -14,7 +14,7 @@ Change the execution permissions:
 ```
 chmod u+x sashimi-plot.py
 ```
-Provided all dependencies are already installed, you can directly execute the script:
+Provided all dependencies are already installed (see below), you can directly execute the script:
 ```
 ./sashimi-plot.py --help
 ```
@@ -22,7 +22,8 @@ To download the entire repository, which includes the dockerfile and example fil
 ```
 git clone https://github.com/guigolab/ggsashimi.git
 ```
-To avoid dependecies issues, the script is also available through a docker image.
+
+To avoid dependencies issues, the script is also available through a docker image.
 
 ### Download docker image
 
