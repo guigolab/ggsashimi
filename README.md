@@ -68,5 +68,17 @@ You can even mount a single file:
 docker run -w $PWD -v $PWD:$PWD -v $f:$f guigolab/ggsashimi -b examples/input_bams.tsv -c chr10:27040584-27048100 -g $f
 ```
 
+## Dependencies
+```
+python (2.7)
+samtools (>=1.3.1)
+R (>=3.3.2)
+  ggplot2 (>=2.2.1)
+  data.table (>=1.10.4)
+  gridExtra (>=2.2.1)   
+```
+Additional required R packages `grid` and `gtable` should be automatically installed when installing R and `ggplot2`, respectively.
+
 ## Usage
-Execute the script with `--help` option for a complete list of options.
+Execute the script with `--help` option for a complete list of options.  
+An example of usage can be found at `examples/example_run.sh`
