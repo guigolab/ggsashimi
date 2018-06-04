@@ -28,7 +28,7 @@ RUN curl -fksSL https://github.com/samtools/samtools/releases/download/1.3.1/sam
     make all all-htslib && make install install-htslib
 
 ## Install R packages for ggplot2
-RUN R -e 'install.packages( c("ggplot2", "grid", "gridExtra", "data.table", "gtable", "svglite"), repos="http://cloud.r-project.org/");' 
+RUN R -e 'install.packages( c("ggplot2", "gridExtra", "data.table", "svglite"), repos="http://cloud.r-project.org/");' 
 
 # Copy ggsashimi in the docker image
 ADD sashimi-plot.py /
