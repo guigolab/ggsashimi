@@ -3,11 +3,11 @@ set -e
 set -u
 
 # checksums
-sashimi_md5="86e5924ecf8ce1272635ff43b244b32e"
-sashimi_anno_md5="216c07785889074f69cb94cc2af7cb00"
+sashimi_md5="d11062f49b37fc2f54faa36382a5380f"
+sashimi_anno_md5="98c11963d87e1361717c304f8a078c5e"
 
 pdfmd5() {
-    grep -avE 'CreationDate|ModDate' $1 | md5sum | awk '{$0=$1}1'
+    grep -avE 'CreationDate|ModDate|Producer' $1 | md5sum | awk '{$0=$1}1'
 }
 
 fail() {
