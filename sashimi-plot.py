@@ -11,7 +11,7 @@ def define_options():
 	parser = ArgumentParser(description='Create sashimi plot for a given genomic region')
 	parser.add_argument("-b", "--bam", type=str,
 		help="""
-		Individual bam file or file with a list of bam files. 
+		Individual bam file or file with a list of bam files.
 		In the case of a list of files the format is tsv:
 		1col: id for bam file,
 		2col: path of bam file,
@@ -33,8 +33,8 @@ def define_options():
 		help="Shrink the junctions by a factor for nicer display [default=%(default)s]")
 	parser.add_argument("-O", "--overlay", type=int,
 		help="Index of column with overlay levels (1-based)")
-	parser.add_argument("-A", "--aggr", type=str, default="", 
-		help="""Aggregate function for overlay: <mean> <median> <mean_j> <median_j>. 
+	parser.add_argument("-A", "--aggr", type=str, default="",
+		help="""Aggregate function for overlay: <mean> <median> <mean_j> <median_j>.
 			Use mean_j | median_j to keep density overlay but aggregate junction counts [default=no aggregation]""")
 	parser.add_argument("-C", "--color-factor", type=int, dest="color_factor",
 		help="Index of column with color levels (1-based)")
@@ -130,7 +130,7 @@ def read_bam(f, c, s):
 		junctions["-"] = {}
 
 	p = sp.Popen("samtools view %s %s " %(f, c), shell=True, stdout=sp.PIPE)
-	for line in p.communicate()[0].strip().split("\n"):
+	for line in p.communicate()[0].decode('utf8').strip().split("\n"):
 
 		if line == "":
 			continue
@@ -190,7 +190,7 @@ def prepare_for_R(a, junctions, c, m):
 	dons, accs, yd, ya, counts = [], [], [], [], []
 
 	# Prepare arrays for junctions (which will be the arcs)
-	for (don, acc), n in junctions.iteritems():
+	for (don, acc), n in junctions.items():
 
 		# Do not add junctions with less than defined coverage
 		if n < m:
@@ -212,7 +212,7 @@ def intersect_introns(data):
 	a, b = next(it)
 	for c, d in it:
 		if b > c:  # Use `if b > c` if you want (1,2), (2,3) not to be
-			        # treated as intersection.
+				# treated as intersection.
 			b = min(b, d)
 			a = max(a, c)
 		else:
@@ -298,7 +298,7 @@ def make_introns(transcripts, exons, intersected_introns=None):
 	new_exons = copy.deepcopy(exons)
 	introns = {}
 	if intersected_introns:
-		for tx, (tx_start,tx_end,strand) in new_transcripts.iteritems():
+		for tx, (tx_start,tx_end,strand) in new_transcripts.items():
 			total_shift = 0
 			for a,b in intersected_introns:
 				l = b - a
@@ -316,10 +316,10 @@ def make_introns(transcripts, exons, intersected_introns=None):
 					if b <= exon_end:
 						new_exon_end = new_exons[tx][i][1] - shift
 					new_exons[tx][i] = (new_exon_start,new_exon_end,strand)
-			tx_start = min(tx_start, sorted(new_exons.get(tx, [[sys.maxint]]))[0][0])
+			tx_start = min(tx_start, sorted(new_exons.get(tx, [[sys.maxsize]]))[0][0])
 			new_transcripts[tx] = (tx_start, tx_end - total_shift, strand)
 
-	for tx, (tx_start,tx_end,strand) in new_transcripts.iteritems():
+	for tx, (tx_start,tx_end,strand) in new_transcripts.items():
 		intron_start = tx_start
 		ex_end = 0
 		for ex_start, ex_end, strand in sorted(new_exons.get(tx, [])):
@@ -334,7 +334,7 @@ def make_introns(transcripts, exons, intersected_introns=None):
 
 
 def gtf_for_ggplot(annotation, start, end, arrow_bins):
-	arrow_space = (end - start)/arrow_bins
+	arrow_space = int((end - start)/arrow_bins)
 	s = """
 
 	# data table with exons
@@ -345,7 +345,7 @@ def gtf_for_ggplot(annotation, start, end, arrow_bins):
 	"""
 
 	if annotation["exons"]:
-	
+
 		s += """
 		ann_list[['exons']] = data.table(
 			tx = rep(c(%(tx_exons)s), c(%(n_exons)s)),
@@ -355,14 +355,14 @@ def gtf_for_ggplot(annotation, start, end, arrow_bins):
 		)
 		""" %({
 		"tx_exons": ",".join(annotation["exons"].keys()),
-		"n_exons": ",".join(map(str, map(len, annotation["exons"].itervalues()))),
-		"exon_start" : ",".join(map(str, (v[0] for vs in annotation["exons"].itervalues() for v in vs))),
-		"exon_end" : ",".join(map(str, (v[1] for vs in annotation["exons"].itervalues() for v in vs))),
-		"strand" : ",".join(map(str, (v[2] for vs in annotation["exons"].itervalues() for v in vs))),
+		"n_exons": ",".join(map(str, map(len, annotation["exons"].values()))),
+		"exon_start" : ",".join(map(str, (v[0] for vs in annotation["exons"].values() for v in vs))),
+		"exon_end" : ",".join(map(str, (v[1] for vs in annotation["exons"].values() for v in vs))),
+		"strand" : ",".join(map(str, (v[2] for vs in annotation["exons"].values() for v in vs))),
 		})
 
 	if annotation["introns"]:
-	
+
 		s += """
 		ann_list[['introns']] = data.table(
 			tx = rep(c(%(tx_introns)s), c(%(n_introns)s)),
@@ -397,10 +397,10 @@ def gtf_for_ggplot(annotation, start, end, arrow_bins):
 		}
 		""" %({
 			"tx_introns": ",".join(annotation["introns"].keys()),
-			"n_introns": ",".join(map(str, map(len, annotation["introns"].itervalues()))),
-			"intron_start" : ",".join(map(str, (v[0] for vs in annotation["introns"].itervalues() for v in vs))),
-			"intron_end" : ",".join(map(str, (v[1] for vs in annotation["introns"].itervalues() for v in vs))),
-			"strand" : ",".join(map(str, (v[2] for vs in annotation["introns"].itervalues() for v in vs))),
+			"n_introns": ",".join(map(str, map(len, annotation["introns"].values()))),
+			"intron_start" : ",".join(map(str, (v[0] for vs in annotation["introns"].values() for v in vs))),
+			"intron_end" : ",".join(map(str, (v[1] for vs in annotation["introns"].values() for v in vs))),
+			"strand" : ",".join(map(str, (v[2] for vs in annotation["introns"].values() for v in vs))),
 			"arrow_space" : arrow_space,
 		})
 
@@ -419,7 +419,7 @@ def gtf_for_ggplot(annotation, start, end, arrow_bins):
 	gtfp = gtfp + labs(y=NULL)
 	gtfp = gtfp + theme(axis.line = element_blank(), axis.text.x = element_blank(), axis.ticks = element_blank())
 	""" %(start, end)
-	
+
 	return s
 
 
@@ -459,14 +459,14 @@ def setup_R_script(h, w, b, label_dict):
 		'h': h,
 		'w': w,
 		'b': b,
-		'labels': ",".join(('"%s"="%s"' %(id,lab) for id,lab in label_dict.iteritems())),
+		'labels': ",".join(('"%s"="%s"' %(id,lab) for id,lab in label_dict.items())),
 	})
 	return s
 
 def median(lst):
     quotient, remainder = divmod(len(lst), 2)
     if remainder:
-        return sorted(lst)[quotient]
+	return sorted(lst)[quotient]
     return sum(sorted(lst)[quotient - 1:quotient + 1]) / 2.
 
 def mean(lst):
@@ -525,21 +525,21 @@ def make_R_lists(id_list, d, overlay_dict, aggr, intersected_introns):
 
 def plot(R_script):
 	p = sp.Popen("R --vanilla --slave", shell=True, stdin=sp.PIPE)
-	p.communicate(input=R_script)
+	p.communicate(input=R_script.encode())
 	p.stdin.close()
 	p.wait()
 	return
 
 
 def colorize(d, p, color_factor):
-	levels = sorted(set(d.itervalues()))
+	levels = sorted(set(d.values()))
 	n = len(levels)
 	if n > len(p):
 		p = (p*n)[:n]
 	if color_factor:
-		s = "color_list = list(%s)\n" %( ",".join('%s="%s"' %(k, p[levels.index(v)]) for k,v in d.iteritems()) )
+		s = "color_list = list(%s)\n" %( ",".join('%s="%s"' %(k, p[levels.index(v)]) for k,v in d.items()) )
 	else:
-		s = "color_list = list(%s)\n" %( ",".join('%s="%s"' %(k, "grey") for k,v in d.iteritems()) )
+		s = "color_list = list(%s)\n" %( ",".join('%s="%s"' %(k, "grey") for k,v in d.items()) )
 	return s
 
 
@@ -559,25 +559,25 @@ if __name__ == "__main__":
 #	args.bam = "/nfs/no_backup/rg/epalumbo/projects/tg/work/8b/8b0ac8705f37fd772a06ab7db89f6b/2A_m4_n10_toGenome.bam"
 
 	if args.aggr and not args.overlay:
-		print "ERROR: Cannot apply aggregate function if overlay is not selected."
+		print("ERROR: Cannot apply aggregate function if overlay is not selected.")
 		exit(1)
 
 	palette = read_palette(args.palette)
 
 	bam_dict, overlay_dict, color_dict, id_list, label_dict = {"+":{}}, {}, {}, [], {}
 	if args.strand != "NONE": bam_dict["-"] = {}
-	
+
 	for id, bam, overlay_level, color_level, label_text in read_bam_input(args.bam, args.overlay, args.color_factor, args.labels):
 		if not os.path.isfile(bam):
 			continue
 		id_list.append(id)
 		label_dict[id] = label_text
 		a, junctions = read_bam(bam, args.coordinates, args.strand)
-		if a.keys() == ["+"] and all(map(lambda x: x==0, a.values()[0])):
-			print "ERROR: No reads in the specified area."
+		if a.keys() == ["+"] and all(map(lambda x: x==0, list(a.values()[0]))):
+			print("ERROR: No reads in the specified area.")
 			exit(1)
 		for strand in a:
-		 	bam_dict[strand][id] = prepare_for_R(a[strand], junctions[strand], args.coordinates, args.min_coverage)
+			bam_dict[strand][id] = prepare_for_R(a[strand], junctions[strand], args.coordinates, args.min_coverage)
 		if color_level is None:
 			color_dict.setdefault(id, id)
 		if overlay_level is not None:
@@ -586,10 +586,10 @@ if __name__ == "__main__":
 			color_dict.setdefault(overlay_level, overlay_level)
 		if overlay_level is None:
 			color_dict.setdefault(id, color_level)
-	
+
 	# No bam files
 	if not bam_dict["+"]:
-		print "ERROR: No available bam files."
+		print("ERROR: No available bam files.")
 		exit(1)
 
 	if args.gtf:
@@ -598,9 +598,9 @@ if __name__ == "__main__":
 	# Iterate for plus and minus strand
 	for strand in bam_dict:
 
-		# Output file name (allow tiff/tif and jpeg/jpg extensions)		
+		# Output file name (allow tiff/tif and jpeg/jpg extensions)
 		if args.out_prefix.endswith(('.pdf', '.png', '.svg', '.tiff', '.tif', '.jpeg', '.jpg')):
-                	out_split = os.path.splitext(args.out_prefix)
+			out_split = os.path.splitext(args.out_prefix)
 			if (args.out_format == out_split[1][1:] or
 			args.out_format == 'tiff' and out_split[1] in ('.tiff','.tif') or
 			args.out_format == 'jpeg' and out_split[1] in ('.jpeg','.jpg')):
@@ -616,8 +616,8 @@ if __name__ == "__main__":
 		else:
 			if args.out_strand != "both" and strand != strand_dict[args.out_strand]:
 				continue
-		
-		# Find set of junctions to perform shrink		
+
+		# Find set of junctions to perform shrink
 		intersected_introns = None
 		if args.shrink:
 			introns = (v for vs in bam_dict[strand].values() for v in zip(vs[2], vs[3]))
@@ -641,7 +641,7 @@ if __name__ == "__main__":
 		if args.gtf:
 			# Make introns from annotation (they are shrunk if required)
 			annotation = make_introns(transcripts, exons, intersected_introns)
-			x = bam_dict[strand].values()[0][0]
+			x = list(bam_dict[strand].values())[0][0]
 			if args.shrink:
 				x, _ = shrink_density(x, x, intersected_introns)
 			R_script += gtf_for_ggplot(annotation, x[0], x[-1], arrow_bins)
@@ -651,7 +651,7 @@ if __name__ == "__main__":
 		R_script += """
 
 		pdf(NULL) # just to remove the blank pdf produced by ggplotGrob
-          
+
 		density_grobs = list();
 
 		for (bam_index in 1:length(density_list)) {
@@ -666,16 +666,16 @@ if __name__ == "__main__":
 			gp = ggplot(d) + geom_bar(aes(x, y), width=1, position='identity', stat='identity', fill=color_list[[id]], alpha=%(alpha)s)
 			gp = gp + labs(y=labels[[id]])
 			gp = gp + scale_x_continuous(expand=c(0,0.2))
-                        gp = gp + scale_y_continuous(breaks=ggplot_build(gp)$layout$panel_ranges[[1]]$y.major_source)
-			
-                        # Aggregate junction counts
+			gp = gp + scale_y_continuous(breaks=ggplot_build(gp)$layout$panel_ranges[[1]]$y.major_source)
+
+			# Aggregate junction counts
 			row_i = c()
 			if (nrow(junctions) >0 ) {
 
 				junctions$jlabel = as.character(junctions$count)
 				junctions = setNames(junctions[,.(max(y), max(yend),round(mean(count)),paste(jlabel,collapse=",")), keyby=.(x,xend)], names(junctions))
 				if ("%(args.aggr)s" != "") {
-					junctions = setNames(junctions[,.(max(y), max(yend),round(%(args.aggr)s(count)),round(%(args.aggr)s(count))), keyby=.(x,xend)], names(junctions))	
+					junctions = setNames(junctions[,.(max(y), max(yend),round(%(args.aggr)s(count)),round(%(args.aggr)s(count))), keyby=.(x,xend)], names(junctions))
 				}
 				# The number of rows (unique junctions per bam) has to be calculated after aggregation
 				row_i = 1:nrow(junctions)
@@ -692,7 +692,7 @@ if __name__ == "__main__":
 					j[3] = as.numeric(d[x==j[1]-1,y])
 					j[4] = as.numeric(d[x==j[2]+1,y])
 				}
-			
+
 				# Find intron midpoint
 				xmid = round(mean(j[1:2]), 1)
 				ymid = max(j[3:4]) * 1.2
@@ -726,7 +726,7 @@ if __name__ == "__main__":
 					curve = xsplineGrob(x=c(1, 1, 0, 0), y=c(0, 1, 1, 1), shape=1, gp=curve_par)
 					gp = gp + annotation_custom(grob = curve, xmid, j[2], j[4], ymid)
 				}
-				
+
 				# Add junction labels
 				gp = gp + annotate("label", x = xmid, y = ymid, label = as.character(junctions[i,6]),
 					vjust=0.5, hjust=0.5, label.padding=unit(0.01, "lines"),
@@ -740,7 +740,7 @@ if __name__ == "__main__":
 
 			}
 
-			gpGrob = ggplotGrob(gp);	
+			gpGrob = ggplotGrob(gp);
 			gpGrob$layout$clip[gpGrob$layout$name=="panel"] <- "off"
 			if (bam_index == 1) {
 				maxWidth = gpGrob$widths[2] + gpGrob$widths[3];
@@ -762,16 +762,16 @@ if __name__ == "__main__":
 			density_grobs[[id]] = gpGrob;
 		}
 
-		# Add x axis grob after density grobs BEFORE annotation grob	
+		# Add x axis grob after density grobs BEFORE annotation grob
 		density_grobs[["xaxis"]] = xaxisGrob
-	
+
 		# Annotation grob
 		if (%(args.gtf)s == 1) {
 			gtfGrob = ggplotGrob(gtfp);
-			maxWidth = grid::unit.pmax(maxWidth, gtfGrob$widths[2] + gtfGrob$widths[3]);			
+			maxWidth = grid::unit.pmax(maxWidth, gtfGrob$widths[2] + gtfGrob$widths[3]);
 			density_grobs[['gtf']] = gtfGrob;
 		}
-		
+
 		# Reassign grob widths to align the plots
 		for (id in names(density_grobs)) {
 			density_grobs[[id]]$widths[1] <- density_grobs[[id]]$widths[1] + maxWidth - (density_grobs[[id]]$widths[2] + maxYtextWidth);
@@ -781,27 +781,27 @@ if __name__ == "__main__":
 		# Heights for density, x axis and annotation
 		heights = unit.c(
 			unit(rep(%(signal_height)s, length(density_list)), "in"),
-			x.axis.height, 
+			x.axis.height,
 			unit(%(ann_height)s*%(args.gtf)s, "in")
 			)
- 
+
 		# Arrange grobs
 		argrobs = arrangeGrob(
 			grobs=density_grobs,
 			ncol=1,
 			heights = heights,
 		);
-                
-		dev.log = dev.off()  
 
-                # Save plot to file in the requested format
-		if ("%(out_format)s" == "tiff"){ 
+		dev.log = dev.off()
+
+		# Save plot to file in the requested format
+		if ("%(out_format)s" == "tiff"){
 			# TIFF images will be lzw-compressed
 			ggsave("%(out)s", plot = argrobs, device = "tiff", width = width, height = height, units = "in", dpi = %(out_resolution)s, compression = "lzw")
 		} else {
 			ggsave("%(out)s", plot = argrobs, device = "%(out_format)s", width = width, height = height, units = "in", dpi = %(out_resolution)s)
 		}
-		
+
 		""" %({
 			"out": "%s.%s" % (out_prefix, out_suffix),
 			"out_format": args.out_format,
