@@ -4,7 +4,7 @@
 from argparse import ArgumentParser
 import subprocess as sp
 import sys, re, copy, os
-
+from collections import OrderedDict
 
 def define_options():
         # Argument parsing
@@ -124,10 +124,10 @@ def read_bam(f, c, s):
 
         # Initialize coverage array and junction dict
         a = {"+" : [0] * (end - start)}
-        junctions = {"+": {}}
+        junctions = {"+": OrderedDict()}
         if s != "NONE":
                 a["-"] = [0] * (end - start)
-                junctions["-"] = {}
+                junctions["-"] = OrderedDict()
 
         p = sp.Popen("samtools view %s %s " %(f, c), shell=True, stdout=sp.PIPE)
         for line in p.communicate()[0].decode('utf8').strip().split("\n"):
@@ -267,8 +267,8 @@ def read_palette(f):
 
 
 def read_gtf(f, c):
-        exons = {}
-        transcripts = {}
+        exons = OrderedDict()
+        transcripts = OrderedDict()
         chr, start, end = parse_coordinates(c)
         end = end -1
         with open(f) as openf:
@@ -296,7 +296,7 @@ def read_gtf(f, c):
 def make_introns(transcripts, exons, intersected_introns=None):
         new_transcripts = copy.deepcopy(transcripts)
         new_exons = copy.deepcopy(exons)
-        introns = {}
+        introns = OrderedDict()
         if intersected_introns:
                 for tx, (tx_start,tx_end,strand) in new_transcripts.items():
                         total_shift = 0
@@ -564,8 +564,8 @@ if __name__ == "__main__":
 
         palette = read_palette(args.palette)
 
-        bam_dict, overlay_dict, color_dict, id_list, label_dict = {"+":{}}, {}, {}, [], {}
-        if args.strand != "NONE": bam_dict["-"] = {}
+        bam_dict, overlay_dict, color_dict, id_list, label_dict = {"+":OrderedDict()}, OrderedDict(), OrderedDict(), [], OrderedDict()
+        if args.strand != "NONE": bam_dict["-"] = OrderedDict()
 
         for id, bam, overlay_level, color_level, label_text in read_bam_input(args.bam, args.overlay, args.color_factor, args.labels):
                 if not os.path.isfile(bam):
@@ -813,6 +813,7 @@ if __name__ == "__main__":
                         "alpha": args.alpha,
                         })
 
-
+                with open("R_script", 'w') as r:
+                    r.write(R_script)
                 plot(R_script)
         exit()
