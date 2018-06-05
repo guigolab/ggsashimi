@@ -13,12 +13,14 @@ addons:
     - pkg-config
     - zlib1g-dev
     - bzip2
+    - r-base
 
 install:
     - curl -fksSL https://github.com/samtools/samtools/releases/download/1.3.1/samtools-1.3.1.tar.bz2 | tar xj
     - cd samtools-1.3.1 && ./configure --prefix=$PWD 
-    - make all all-htslib && make install install-htslib
-    - export PATH=$PATH:$PWD/bin/
+    - make all all-htslib && make install install-htslib 
+    - export PATH=$PATH:$PWD/bin/ && cd -
+    - R -e 'install.packages( c("ggplot2", "gridExtra", "data.table", "svglite"), repos="http://cloud.r-project.org/");'
 
 script:
   - bash ci/run.sh
