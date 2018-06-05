@@ -70,14 +70,16 @@ docker run -w $PWD -v $PWD:$PWD -v $f:$f guigolab/ggsashimi -b examples/input_ba
 ```
 
 ## Dependencies
-```
-python (2.7)
-samtools (>=1.3.1)
-R (>=3.3.2)
-  ggplot2 (>=2.2.1)
-  data.table (>=1.10.4)
-  gridExtra (>=2.2.1)   
-```
+
+In order to run `ggsashimi` the following software components and packages are required:
+
+- python (2.7 or 3)
+- samtools (>=1.3)
+- R (>=3.3)
+  - ggplot2 (>=2.2.1)
+  - data.table (>=1.10.4)
+  - gridExtra (>=2.2.1)   
+
 Additional required R packages `grid` and `gtable` should be automatically installed when installing R and `ggplot2`, respectively.
 
 ## Usage
