@@ -6,6 +6,8 @@ python:
 
 addons:
   apt:
+    sources:
+    - r-packages-trusty
     packages:
     - libncurses5-dev
     - libncursesw5-dev
@@ -20,6 +22,7 @@ install:
     - cd samtools-1.3.1 && ./configure --prefix=$PWD 
     - make all all-htslib && make install install-htslib 
     - export PATH=$PATH:$PWD/bin/ && cd -
+    - echo ".libPaths('~/.R/libs')" > ~/.Rprofile
     - R -e 'install.packages( c("ggplot2", "gridExtra", "data.table", "svglite"), repos="http://cloud.r-project.org/");'
 
 script:
