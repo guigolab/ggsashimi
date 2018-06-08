@@ -101,7 +101,7 @@ In order to run `ggsashimi` the following software components and packages are r
   - data.table (>=1.10.4)
   - gridExtra (>=2.2.1)
 
-Additional required R packages `grid` and `gtable` should be automatically installed when installing R and `ggplot2`, respectively.
+Additional required R packages `grid` and `gtable` should be automatically installed when installing R and `ggplot2`, respectively. Package `svglite` (>=1.2.1) is also required when generating output images in SVG format.
 
 ## Usage
 
