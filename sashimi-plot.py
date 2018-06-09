@@ -812,8 +812,8 @@ if __name__ == "__main__":
                         "ann_height": args.ann_height,
                         "alpha": args.alpha,
                         })
-
-                with open("R_script", 'w') as r:
-                    r.write(R_script)
+                if os.getenv('GGSASHIMI_DEBUG') is not None:
+                        with open("R_script", 'w') as r:
+                                r.write(R_script)
                 plot(R_script)
         exit()
