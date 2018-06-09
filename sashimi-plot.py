@@ -243,7 +243,7 @@ def shrink_junctions(dons, accs, introns):
         shift_acc = 0
         shift_don = 0
         s = set()
-        junctions = zip(dons, accs)
+        junctions = list(zip(dons, accs))
         for a,b in introns:
                 l = b - a
                 shift_acc += l-int(l**0.7)
