@@ -55,7 +55,7 @@ def define_options():
         parser.add_argument("-F", "--out-format", type=str, default="pdf", dest="out_format",
                 help="Output file format: <pdf> <svg> <png> <jpeg> <tiff> [default=%(default)s]")
         parser.add_argument("-R", "--out-resolution", type=int, default=300, dest="out_resolution",
-                help="Output file resolution in PPI (pixels per inch). Applies only to raster output formats")
+                help="Output file resolution in PPI (pixels per inch). Applies only to raster output formats [default=%(default)s]")
 #       parser.add_argument("-s", "--smooth", action="store_true", default=False, help="Smooth the signal histogram")
         return parser
 
@@ -442,7 +442,7 @@ def setup_R_script(h, w, b, label_dict):
         width = %(w)s
         theme_set(theme_bw(base_size=base_size))
         theme_update(
-                plot.margin = unit(c(3,7,7,7), "pt"),
+                plot.margin = unit(c(15,15,15,15), "pt"),
                 panel.grid = element_blank(),
                 panel.border = element_blank(),
                 axis.line = element_line(size=0.5),

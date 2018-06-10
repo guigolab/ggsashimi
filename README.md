@@ -106,4 +106,4 @@ Additional required R packages `grid` and `gtable` should be automatically insta
 ## Usage
 
 Execute the script with `--help` option for a complete list of options.  
-An example of usage can be found at `examples/example_run.sh`
+Sample data and usage examples can be found at `examples`
