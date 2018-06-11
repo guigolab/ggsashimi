@@ -503,7 +503,7 @@ def make_R_lists(id_list, d, overlay_dict, aggr, intersected_introns):
                                 counts += countsid
                         if aggr and "_j" not in aggr:
                                 x = d[overlay_dict[k][0]][0]
-                                y = map(aggr_f[aggr], zip(*(d[id][1] for id in overlay_dict[k])))
+                                y = list(map(aggr_f[aggr], zip(*(d[id][1] for id in overlay_dict[k]))))
                                 if intersected_introns:
                                         x, y = shrink_density(x, y, intersected_introns)
                         #dons, accs, yd, ya, counts = [], [], [], [], []
