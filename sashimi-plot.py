@@ -120,7 +120,7 @@ def flip_read(s, samflag):
 
 def read_bam(f, c, s):
 
-        chr, start, end = parse_coordinates(c)
+        _, start, end = parse_coordinates(c)
 
         # Initialize coverage array and junction dict
         a = {"+" : [0] * (end - start)}
@@ -180,7 +180,7 @@ def read_bam_input(f, overlay, color, label):
 
 def prepare_for_R(a, junctions, c, m):
 
-        chr, start, end = parse_coordinates(args.coordinates)
+        _, start, _ = parse_coordinates(args.coordinates)
 
         # Convert the array index to genomic coordinates
         x = list(i+start for i in range(len(a)))
@@ -275,7 +275,7 @@ def read_gtf(f, c):
                 for line in openf:
                         if line.startswith("#"):
                                 continue
-                        el_chr, ann, el, el_start, el_end, score1, strand, score2, tags = line.strip().split("\t")
+                        el_chr, _, el, el_start, el_end, _, strand, _, tags = line.strip().split("\t")
                         if el_chr != chr:
                                 continue
                         d = dict(kv.strip().split(" ") for kv in tags.strip(";").split("; "))
