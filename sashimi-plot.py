@@ -71,7 +71,7 @@ def parse_coordinates(c):
 
 
 
-def count_operator(CIGAR_op, CIGAR_len, pos, start, end, a, junctions, line):
+def count_operator(CIGAR_op, CIGAR_len, pos, start, end, a, junctions):
 
         # Match
         if CIGAR_op == "M":
@@ -152,7 +152,7 @@ def read_bam(f, c, s):
 
                 for n, CIGAR_op in enumerate(CIGAR_ops):
                         CIGAR_len = int(CIGAR_lens[n])
-                        pos = count_operator(CIGAR_op, CIGAR_len, pos, start, end, a[read_strand], junctions[read_strand], line=line)
+                        pos = count_operator(CIGAR_op, CIGAR_len, pos, start, end, a[read_strand], junctions[read_strand])
 
         p.stdout.close()
         return a, junctions
