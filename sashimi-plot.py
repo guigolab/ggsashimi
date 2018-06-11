@@ -5,6 +5,7 @@ import subprocess as sp
 import sys, re, copy, os, codecs, gzip
 from argparse import ArgumentParser, Action as ArgParseAction
 from collections import OrderedDict
+import pysam
 
 
 __version__ = "0.5.1-dev"
@@ -159,7 +160,7 @@ def flip_read(s, samflag):
 
 def read_bam(f, c, s):
 
-        _, start, end = parse_coordinates(c)
+        chr, start, end = parse_coordinates(c)
 
         # Initialize coverage array and junction dict
         a = {"+" : [0] * (end - start)}
@@ -167,15 +168,12 @@ def read_bam(f, c, s):
         if s != "NONE":
                 a["-"] = [0] * (end - start)
                 junctions["-"] = OrderedDict()
+        
+        samfile = pysam.AlignmentFile(f)
 
-        p = sp.Popen("samtools view %s %s " %(f, c), shell=True, stdout=sp.PIPE)
-        for line in p.communicate()[0].decode('utf8').strip().split("\n"):
-
-                if line == "":
-                        continue
-
-                line_sp = line.strip().split("\t")
-                samflag, read_start, CIGAR = line_sp[1], int(line_sp[3]), line_sp[5]
+        for read in samfile.fetch(chr, start, end):
+                 
+                samflag, read_start, CIGAR = read.flag, read.reference_start+1, read.cigarstring
 
                 # Ignore reads with more exotic CIGAR operators
                 if any(map(lambda x: x in CIGAR, ["H", "P", "X", "="])):
@@ -193,7 +191,7 @@ def read_bam(f, c, s):
                         CIGAR_len = int(CIGAR_lens[n])
                         pos = count_operator(CIGAR_op, CIGAR_len, pos, start, end, a[read_strand], junctions[read_strand])
 
-        p.stdout.close()
+        samfile.close()
         return a, junctions
 
 def get_bam_path(index, path):

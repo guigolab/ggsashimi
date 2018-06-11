@@ -36,4 +36,4 @@ conda config --add channels conda-forge
 conda info -a
 
 # create environment
-conda create -q -n $GGSASHIMI_ENV samtools=$SAMTOOLS_VER r-base=$R_VER r-ggplot2=$GGPLOT_VER r-gridextra r-data.table r-svglite
+conda create -q -n $GGSASHIMI_ENV pysam r-base=$R_VER r-ggplot2=$GGPLOT_VER r-gridextra r-data.table r-svglite
