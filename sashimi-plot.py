@@ -815,5 +815,6 @@ if __name__ == "__main__":
                 if os.getenv('GGSASHIMI_DEBUG') is not None:
                         with open("R_script", 'w') as r:
                                 r.write(R_script)
-                plot(R_script)
+                else:
+                        plot(R_script)
         exit()
