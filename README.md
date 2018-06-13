@@ -4,6 +4,8 @@
 
 Command-line tool for the visualization of splicing events across multiple samples
 
+![image](sashimi.png)
+
 ## Installation
 
 The `ggsashimi` script can be directly downloaded from this repository:
