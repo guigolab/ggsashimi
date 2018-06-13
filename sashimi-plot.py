@@ -595,6 +595,10 @@ if __name__ == "__main__":
         if args.gtf:
                 transcripts, exons = read_gtf(args.gtf, args.coordinates)
 
+        if args.out_format not in ('pdf', 'png', 'svg', 'tiff', 'jpeg'):
+                print("ERROR: Provided output format '%s' is not available. Please select among 'pdf', 'png', 'svg', 'tiff' or 'jpeg'" % args.out_format)
+                exit(1)
+        
         # Iterate for plus and minus strand
         for strand in bam_dict:
 
