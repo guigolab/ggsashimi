@@ -4,9 +4,17 @@
 
 Command-line tool for the visualization of splicing events across multiple samples
 
+&ensp; **[Installation](#installation)**<br>
+&ensp; &ensp; **[Dependencies](#dependencies)**<br>
+&ensp; &ensp; **[Download docker image](#download-docker-image)**<br>
+&ensp; &ensp; **[Build docker image](#build-docker-image)**<br>
+&ensp; &ensp; **[Use docker image](#build-docker-image)**<br>
+&ensp; **[Usage](#usage)**<br>
+&ensp; **[Cite ggsashimi](#cite-ggsashimi)**
+
 ![image](sashimi.png)
 
-## Installation
+## Installation<a name="installation"></a>
 
 The `ggsashimi` script can be directly downloaded from this repository:
 
@@ -32,9 +40,22 @@ To download the entire repository, which includes the dockerfile and example fil
 git clone https://github.com/guigolab/ggsashimi.git
 ```
 
+### Dependencies<a name="dependencies"></a>
+
+In order to run `ggsashimi` the following software components and packages are required:
+
+- python (2.7 or 3)
+- samtools (>=1.3)
+- R (>=3.3)
+  - ggplot2 (>=2.2.1)
+  - data.table (>=1.10.4)
+  - gridExtra (>=2.2.1)
+
+Additional required R packages `grid` and `gtable` should be automatically installed when installing R and `ggplot2`, respectively. Package `svglite` (>=1.2.1) is also required when generating output images in SVG format.
+
 To avoid dependencies issues, the script is also available through a docker image.
 
-### Download docker image
+### Download docker image<a name="download-docker-image"></a>
 
 A public `ggsashimi` Docker image is available in the [Docker Hub](https://hub.docker.com/r/guigolab/ggsashimi/) and can be downloaded as follows:
 
@@ -44,7 +65,7 @@ docker pull guigolab/ggsashimi
 
 Alternatively, we provide the Dockerfile if you want to build your local docker image.
 
-### Build docker image
+### Build docker image <a name="build-docker-image"></a>
 
 After downloading the repository, move inside the repository folder:
 
@@ -60,7 +81,7 @@ docker build -f docker/Dockerfile -t guigolab/ggsashimi .
 
 This can take several minutes.
 
-### Use docker image
+### Use docker image <a name="use-docker-image"></a>
 
 Once the image is downloaded or built, to execute ggsashimi with docker:
 
@@ -92,20 +113,13 @@ You can even mount a single file:
 docker run -w $PWD -v $PWD:$PWD -v $f:$f guigolab/ggsashimi -b examples/input_bams.tsv -c chr10:27040584-27048100 -g $f
 ```
 
-## Dependencies
-
-In order to run `ggsashimi` the following software components and packages are required:
-
-- python (2.7 or 3)
-- samtools (>=1.3)
-- R (>=3.3)
-  - ggplot2 (>=2.2.1)
-  - data.table (>=1.10.4)
-  - gridExtra (>=2.2.1)
-
-Additional required R packages `grid` and `gtable` should be automatically installed when installing R and `ggplot2`, respectively. Package `svglite` (>=1.2.1) is also required when generating output images in SVG format.
-
-## Usage
+## Usage <a name="usage"></a>
 
 Execute the script with `--help` option for a complete list of options.  
 Sample data and usage examples can be found at `examples`
+
+## Cite ggsashimi <a name="cite-ggsashimi"></a>
+
+If you find ggsashimi useful in your research please cite the related publication:
+
+[Garrido-Martín, D., Palumbo, E., Guigó, R., & Breschi, A. (2018). ggsashimi: Sashimi plot revised for browser-and annotation-independent splicing visualization. _PLoS computational biology, 14_(8), e1006360.](https://doi.org/10.1371/journal.pcbi.1006360)
