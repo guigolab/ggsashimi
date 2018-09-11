@@ -120,6 +120,6 @@ Sample data and usage examples can be found at `examples`
 
 ## Cite ggsashimi <a name="cite-ggsashimi"></a>
 
-If you find ggsashimi useful in your research please cite the related publication:
+If you find `ggsashimi` useful in your research please cite the related publication:
 
 [Garrido-Martín, D., Palumbo, E., Guigó, R., & Breschi, A. (2018). ggsashimi: Sashimi plot revised for browser-and annotation-independent splicing visualization. _PLoS computational biology, 14_(8), e1006360.](https://doi.org/10.1371/journal.pcbi.1006360)
