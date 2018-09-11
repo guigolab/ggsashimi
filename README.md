@@ -4,13 +4,13 @@
 
 Command-line tool for the visualization of splicing events across multiple samples
 
-&ensp; **[Installation](#installation)**<br>
-&ensp; &ensp; **[Dependencies](#dependencies)**<br>
-&ensp; &ensp; **[Download docker image](#download-docker-image)**<br>
-&ensp; &ensp; **[Build docker image](#build-docker-image)**<br>
-&ensp; &ensp; **[Use docker image](#build-docker-image)**<br>
-&ensp; **[Usage](#usage)**<br>
-&ensp; **[Cite ggsashimi](#cite-ggsashimi)**
+**[Installation](#installation)**<br>
+&ensp; **[Dependencies](#dependencies)**<br>
+&ensp; **[Download docker image](#download-docker-image)**<br>
+&ensp; **[Build docker image](#build-docker-image)**<br>
+&ensp; **[Use docker image](#use-docker-image)**<br>
+**[Usage](#usage)**<br>
+**[Cite ggsashimi](#cite-ggsashimi)**
 
 ![image](sashimi.png)
 
