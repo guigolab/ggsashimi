@@ -57,7 +57,7 @@ Additional required R packages `grid` and `gtable` should be automatically insta
 
 To avoid dependencies issues, the script is also available through a docker image.
 
-### Download docker image<a name="download-docker-image"></a>
+### Download docker image <a name="download-docker-image"></a>
 
 A public `ggsashimi` Docker image is available in the [Docker Hub](https://hub.docker.com/r/guigolab/ggsashimi/) and can be downloaded as follows:
 
@@ -65,9 +65,9 @@ A public `ggsashimi` Docker image is available in the [Docker Hub](https://hub.d
 docker pull guigolab/ggsashimi
 ```
 
-Alternatively, we provide the Dockerfile if you want to build your local docker image.
+__Alternatively__, we provide the Dockerfile if you want to build your local docker image, although most users will not need it.
 
-### Build docker image <a name="build-docker-image"></a>
+### Build docker image (optional) <a name="build-docker-image"></a>
 
 After downloading the repository, move inside the repository folder:
 
