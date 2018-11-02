@@ -796,8 +796,6 @@ if __name__ == "__main__":
                         heights = heights,
                 );
 
-                dev.log = dev.off()
-
                 # Save plot to file in the requested format
                 if ("%(out_format)s" == "tiff"){
                         # TIFF images will be lzw-compressed
@@ -805,6 +803,8 @@ if __name__ == "__main__":
                 } else {
                         ggsave("%(out)s", plot = argrobs, device = "%(out_format)s", width = width, height = height, units = "in", dpi = %(out_resolution)s)
                 }
+
+                dev.log = dev.off()
 
                 """ %({
                         "out": "%s.%s" % (out_prefix, out_suffix),
