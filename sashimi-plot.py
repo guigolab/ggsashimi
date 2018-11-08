@@ -51,7 +51,7 @@ def define_options():
         parser.add_argument("--width", type=float, default=10,
                 help="Width of the plot in inches [default=%(default)s]")
         parser.add_argument("--base-size", type=float, default=14, dest="base_size",
-                help="Base character size of the plot in pch [default=%(default)s]")
+                help="Base font size of the plot in pch [default=%(default)s]")
         parser.add_argument("-F", "--out-format", type=str, default="pdf", dest="out_format",
                 help="Output file format: <pdf> <svg> <png> <jpeg> <tiff> [default=%(default)s]")
         parser.add_argument("-R", "--out-resolution", type=int, default=300, dest="out_resolution",
