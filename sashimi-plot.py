@@ -598,7 +598,7 @@ if __name__ == "__main__":
         if args.out_format not in ('pdf', 'png', 'svg', 'tiff', 'jpeg'):
                 print("ERROR: Provided output format '%s' is not available. Please select among 'pdf', 'png', 'svg', 'tiff' or 'jpeg'" % args.out_format)
                 exit(1)
-        
+
         # Iterate for plus and minus strand
         for strand in bam_dict:
 
@@ -656,9 +656,15 @@ if __name__ == "__main__":
 
                 pdf(NULL) # just to remove the blank pdf produced by ggplotGrob
 
-                density_grobs = list();
+                if(packageVersion('ggplot2') >= '3.0.0'){  # fix problems with ggplot2 vs >3.0.0
+			vs = 1
+		} else {
+			vs = 0
+		}
 
-                for (bam_index in 1:length(density_list)) {
+		density_grobs = list();
+
+              	for (bam_index in 1:length(density_list)) {
 
                         id = names(density_list)[bam_index]
                         d = data.table(density_list[[id]])
@@ -670,7 +676,12 @@ if __name__ == "__main__":
                         gp = ggplot(d) + geom_bar(aes(x, y), width=1, position='identity', stat='identity', fill=color_list[[id]], alpha=%(alpha)s)
                         gp = gp + labs(y=labels[[id]])
                         gp = gp + scale_x_continuous(expand=c(0,0.2))
-                        gp = gp + scale_y_continuous(breaks=ggplot_build(gp)$layout$panel_ranges[[1]]$y.major_source)
+
+			if(packageVersion('ggplot2') >= '3.0.0'){ # fix problems with ggplot2 vs >3.0.0
+                        	gp = gp + scale_y_continuous(breaks=ggplot_build(gp)$layout$panel_params[[1]]$y.major_source)
+                        } else {
+                          	gp = gp + scale_y_continuous(breaks=ggplot_build(gp)$layout$panel_ranges[[1]]$y.major_source)
+                        }
 
                         # Aggregate junction counts
                         row_i = c()
@@ -747,12 +758,12 @@ if __name__ == "__main__":
                         gpGrob = ggplotGrob(gp);
                         gpGrob$layout$clip[gpGrob$layout$name=="panel"] <- "off"
                         if (bam_index == 1) {
-                                maxWidth = gpGrob$widths[2] + gpGrob$widths[3];
-                                maxYtextWidth = gpGrob$widths[3];
+                                maxWidth = gpGrob$widths[2+vs] + gpGrob$widths[3+vs];    # fix problems ggplot2 vs
+                                maxYtextWidth = gpGrob$widths[3+vs];                     # fix problems ggplot2 vs
                                 # Extract x axis grob (trim=F --> keep empty cells)
                                 xaxisGrob <- gtable_filter(gpGrob, "axis-b", trim=F)
-                                xaxisGrob$heights[8] = gpGrob$heights[10]
-                                x.axis.height = gpGrob$heights[7] + gpGrob$heights[10]
+                                xaxisGrob$heights[8+vs] = gpGrob$heights[1]              # fix problems ggplot2 vs
+                                x.axis.height = gpGrob$heights[7+vs] + gpGrob$heights[1] # fix problems ggplot2 vs
                         }
 
 
@@ -761,8 +772,8 @@ if __name__ == "__main__":
                         gpGrob <- gtable_filter(gpGrob, paste(kept_names, sep="", collapse="|"), trim=F)
 
                         # Find max width of y text and y label and max width of y text
-                        maxWidth = grid::unit.pmax(maxWidth, gpGrob$widths[2] + gpGrob$widths[3]);
-                        maxYtextWidth = grid::unit.pmax(maxYtextWidth, gpGrob$widths[3]);
+                        maxWidth = grid::unit.pmax(maxWidth, gpGrob$widths[2+vs] + gpGrob$widths[3+vs]); # fix problems ggplot2 vs
+                        maxYtextWidth = grid::unit.pmax(maxYtextWidth, gpGrob$widths[3+vs]); # fix problems ggplot2 vs
                         density_grobs[[id]] = gpGrob;
                 }
 
@@ -772,14 +783,14 @@ if __name__ == "__main__":
                 # Annotation grob
                 if (%(args.gtf)s == 1) {
                         gtfGrob = ggplotGrob(gtfp);
-                        maxWidth = grid::unit.pmax(maxWidth, gtfGrob$widths[2] + gtfGrob$widths[3]);
+                        maxWidth = grid::unit.pmax(maxWidth, gtfGrob$widths[2+vs] + gtfGrob$widths[3+vs]); # fix problems ggplot2 vs
                         density_grobs[['gtf']] = gtfGrob;
                 }
 
                 # Reassign grob widths to align the plots
                 for (id in names(density_grobs)) {
-                        density_grobs[[id]]$widths[1] <- density_grobs[[id]]$widths[1] + maxWidth - (density_grobs[[id]]$widths[2] + maxYtextWidth);
-                        density_grobs[[id]]$widths[3] <- maxYtextWidth
+                        density_grobs[[id]]$widths[1] <- density_grobs[[id]]$widths[1] + maxWidth - (density_grobs[[id]]$widths[2+vs] + maxYtextWidth); # fix problems ggplot2 vs
+                        density_grobs[[id]]$widths[3+vs] <- maxYtextWidth # fix problems ggplot2 vs
                 }
 
                 # Heights for density, x axis and annotation
