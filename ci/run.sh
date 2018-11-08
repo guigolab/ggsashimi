@@ -3,8 +3,8 @@ set -e
 set -u
 
 # checksums
-sashimi_md5="29fc14177ba735b4ebf598793d5a014a"
-sashimi_anno_md5="528865ba00853e8389083e828f735eb6"
+sashimi_md5="e087c484de2ed2498fabe5c3f0b7e836"
+sashimi_anno_md5="b6f82cfd3c7935c1113338730a2cffa2"
 
 fail() {
     echo ${1-""} >&2 && exit 1
