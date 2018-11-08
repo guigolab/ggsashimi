@@ -47,11 +47,9 @@ In order to run `ggsashimi` the following software components and packages are r
 - python (2.7 or 3)
 - samtools (>=1.3)
 - R (>=3.3)
-  - ggplot2 (=2.2.1)*
+  - ggplot2 (>=2.2.1)
   - data.table (>=1.10.4)
   - gridExtra (>=2.2.1)
-
-\* __WARNING__: Due to a recent major update in `ggplot2`, some users are experiencing problems with ggsashimi visualization. As a temporary solution we recommend to use v2.2.1, or alternatively, our docker image. We are working to fix this issue as soon as possible.
 
 Additional required R packages `grid` and `gtable` should be automatically installed when installing R and `ggplot2`, respectively. Package `svglite` (>=1.2.1) is also required when generating output images in SVG format.
 
