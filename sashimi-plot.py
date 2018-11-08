@@ -657,14 +657,14 @@ if __name__ == "__main__":
                 pdf(NULL) # just to remove the blank pdf produced by ggplotGrob
 
                 if(packageVersion('ggplot2') >= '3.0.0'){  # fix problems with ggplot2 vs >3.0.0
-			vs = 1
-		} else {
-			vs = 0
-		}
+                        vs = 1
+                } else {
+                        vs = 0
+                }
 
-		density_grobs = list();
+                density_grobs = list();
 
-              	for (bam_index in 1:length(density_list)) {
+                      for (bam_index in 1:length(density_list)) {
 
                         id = names(density_list)[bam_index]
                         d = data.table(density_list[[id]])
@@ -677,10 +677,10 @@ if __name__ == "__main__":
                         gp = gp + labs(y=labels[[id]])
                         gp = gp + scale_x_continuous(expand=c(0,0.2))
 
-			if(packageVersion('ggplot2') >= '3.0.0'){ # fix problems with ggplot2 vs >3.0.0
-                        	gp = gp + scale_y_continuous(breaks=ggplot_build(gp)$layout$panel_params[[1]]$y.major_source)
+                        if(packageVersion('ggplot2') >= '3.0.0'){ # fix problems with ggplot2 vs >3.0.0
+                                gp = gp + scale_y_continuous(breaks=ggplot_build(gp)$layout$panel_params[[1]]$y.major_source)
                         } else {
-                          	gp = gp + scale_y_continuous(breaks=ggplot_build(gp)$layout$panel_ranges[[1]]$y.major_source)
+                                gp = gp + scale_y_continuous(breaks=ggplot_build(gp)$layout$panel_ranges[[1]]$y.major_source)
                         }
 
                         # Aggregate junction counts
