@@ -25,6 +25,8 @@ def define_options():
                 help="Only for --strand other than 'NONE'. Choose which signal strand to plot: <both> <plus> <minus> [default=%(default)s]")
         parser.add_argument("-M", "--min-coverage", type=int, default=1, dest="min_coverage",
                 help="Minimum number of reads supporting a junction to be drawn [default=1]")
+        parser.add_argument("-j", "--junctions-bed", type=str, dest = "junctions_bed", default="",
+                help="Junction BED file name [default=no junction file]")
         parser.add_argument("-g", "--gtf",
                 help="Gtf file with annotation (only exons is enough)")
         parser.add_argument("-s", "--strand", default="NONE", type=str,
@@ -566,6 +568,7 @@ if __name__ == "__main__":
 
         bam_dict, overlay_dict, color_dict, id_list, label_dict = {"+":OrderedDict()}, OrderedDict(), OrderedDict(), [], OrderedDict()
         if args.strand != "NONE": bam_dict["-"] = OrderedDict()
+        if args.junctions_bed != "": junctions_list = []
 
         for id, bam, overlay_level, color_level, label_text in read_bam_input(args.bam, args.overlay, args.color_factor, args.labels):
                 if not os.path.isfile(bam):
@@ -577,6 +580,11 @@ if __name__ == "__main__":
                         print("ERROR: No reads in the specified area.")
                         exit(1)
                 for strand in a:
+                        # Store junction information                 
+                        if args.junctions_bed: 
+				for k,v in zip(junctions[strand].keys(), junctions[strand].values()):
+                                        if v > args.min_coverage:
+                                                junctions_list.append('\t'.join([args.coordinates.split(':')[0], str(k[0]), str(k[1]), id, str(v), strand]))                     
                         bam_dict[strand][id] = prepare_for_R(a[strand], junctions[strand], args.coordinates, args.min_coverage)
                 if color_level is None:
                         color_dict.setdefault(id, id)
@@ -591,6 +599,14 @@ if __name__ == "__main__":
         if not bam_dict["+"]:
                 print("ERROR: No available bam files.")
                 exit(1)
+
+        # Write junctions to BED
+        if args.junctions_bed: 
+                if not args.junctions_bed.endswith('.bed'):
+                        args.junctions_bed = args.junctions_bed + '.bed'
+                jbed = open(args.junctions_bed, 'w')
+                jbed.write('\n'.join(sorted(junctions_list)))
+                jbed.close()
 
         if args.gtf:
                 transcripts, exons = read_gtf(args.gtf, args.coordinates)
