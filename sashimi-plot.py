@@ -582,7 +582,7 @@ if __name__ == "__main__":
                 for strand in a:
                         # Store junction information                 
                         if args.junctions_bed: 
-				for k,v in zip(junctions[strand].keys(), junctions[strand].values()):
+                                for k,v in zip(junctions[strand].keys(), junctions[strand].values()):
                                         if v > args.min_coverage:
                                                 junctions_list.append('\t'.join([args.coordinates.split(':')[0], str(k[0]), str(k[1]), id, str(v), strand]))                     
                         bam_dict[strand][id] = prepare_for_R(a[strand], junctions[strand], args.coordinates, args.min_coverage)
