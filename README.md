@@ -10,6 +10,7 @@ Command-line tool for the visualization of splicing events across multiple sampl
 &ensp; **[Build docker image](#build-docker-image)**<br>
 &ensp; **[Use docker image](#use-docker-image)**<br>
 **[Usage](#usage)**<br>
+**[Galaxy](#galaxy)**<br>
 **[Cite ggsashimi](#cite-ggsashimi)**
 
 ![image](sashimi.png)
@@ -117,6 +118,10 @@ docker run -w $PWD -v $PWD:$PWD -v $f:$f guigolab/ggsashimi -b examples/input_ba
 
 Execute the script with `--help` option for a complete list of options.  
 Sample data and usage examples can be found at `examples`
+
+## Galaxy <a name="galaxy-wrapper-for-ggsashimi"></a>
+
+Thanks to [ARTbio](https://github.com/ARTbio), now a [Galaxy](https://galaxyproject.org) wrapper for `ggsashimi` is available at the [Galaxy ToolShed](https://toolshed.g2.bx.psu.edu/repository?repository_id=397283a49b821a79&changeset_revision=64aa67b5099f).
 
 ## Cite ggsashimi <a name="cite-ggsashimi"></a>
 
