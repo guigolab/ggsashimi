@@ -680,7 +680,7 @@ if __name__ == "__main__":
                 }
 
                 get_max_y <- function(density_list){
-                    ## This function returns max signal height of all density plots
+                    # Returns the max signal height of all density plots
                     max_y_list = c()
                     for (element in density_list) {
                         max_y_list = append(max_y_list, max(element$y))
@@ -689,6 +689,8 @@ if __name__ == "__main__":
                 }
 
                 set_y_scale <- function(density_plot, density_list, fixed_y_scale){
+                    # Sets y scale either as done previously or fixed to largest
+                    # signal height depending on the fixed_y_scale argument
                     max_y = get_max_y(density_list)
                     if(fixed_y_scale){
                         density_plot = density_plot + coord_cartesian(
