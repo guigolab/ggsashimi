@@ -50,6 +50,8 @@ def define_options():
                 help="Height of the individual signal plot in inches [default=%(default)s]")
         parser.add_argument("--ann-height", type=float, default=1.5, dest="ann_height",
                 help="Height of annotation plot in inches [default=%(default)s]")
+        parser.add_argument("--fixed-y-scale", default=False, dest="fixed_y_scale", action="store_true",
+                help="Fix y-scale of all plots to the tallest signal height [default=%(default)s]")
         parser.add_argument("--width", type=float, default=10,
                 help="Width of the plot in inches [default=%(default)s]")
         parser.add_argument("--base-size", type=float, default=14, dest="base_size",
@@ -545,7 +547,6 @@ def colorize(d, p, color_factor):
         return s
 
 
-
 if __name__ == "__main__":
 
         strand_dict = {"plus": "+", "minus": "-"}
@@ -580,11 +581,11 @@ if __name__ == "__main__":
                         print("ERROR: No reads in the specified area.")
                         exit(1)
                 for strand in a:
-                        # Store junction information                 
-                        if args.junctions_bed: 
+                        # Store junction information
+                        if args.junctions_bed:
                                 for k,v in zip(junctions[strand].keys(), junctions[strand].values()):
                                         if v > args.min_coverage:
-                                                junctions_list.append('\t'.join([args.coordinates.split(':')[0], str(k[0]), str(k[1]), id, str(v), strand]))                     
+                                                junctions_list.append('\t'.join([args.coordinates.split(':')[0], str(k[0]), str(k[1]), id, str(v), strand]))
                         bam_dict[strand][id] = prepare_for_R(a[strand], junctions[strand], args.coordinates, args.min_coverage)
                 if color_level is None:
                         color_dict.setdefault(id, id)
@@ -601,7 +602,7 @@ if __name__ == "__main__":
                 exit(1)
 
         # Write junctions to BED
-        if args.junctions_bed: 
+        if args.junctions_bed:
                 if not args.junctions_bed.endswith('.bed'):
                         args.junctions_bed = args.junctions_bed + '.bed'
                 jbed = open(args.junctions_bed, 'w')
@@ -678,8 +679,42 @@ if __name__ == "__main__":
                         vs = 0
                 }
 
-                density_grobs = list();
+                get_max_y <- function(density_list){
+                    ## This function returns max signal height of all density plots
+                    max_y_list = c()
+                    for (element in density_list) {
+                        max_y_list = append(max_y_list, max(element$y))
+                    }
+                    return(max(max_y_list))
+                }
 
+                set_y_scale <- function(density_plot, density_list, fixed_y_scale){
+                    max_y = get_max_y(density_list)
+                    if(fixed_y_scale){
+                        density_plot = density_plot + coord_cartesian(
+                            ylim = c(0, max_y)
+                        ) + theme(
+                            # Add plot margin to account for arches
+                            plot.margin = margin(
+                                c(5.5, 5.5, 20, 5.5),
+                                unit="pt"
+                            )
+                        )
+                    } else {
+                        if(packageVersion('ggplot2') >= '3.0.0'){ # fix problems with ggplot2 vs >3.0.0
+                                density_plot = density_plot + scale_y_continuous(
+                                    breaks=ggplot_build(gp)$layout$panel_params[[1]]$y.major_source
+                                )
+                            } else {
+                                density_plot = density_plot + scale_y_continuous(
+                                    breaks=ggplot_build(gp)$layout$panel_ranges[[1]]$y.major_source
+                                )
+                            }
+                    }
+                    return(density_plot)
+                }
+
+                density_grobs = list();
                       for (bam_index in 1:length(density_list)) {
 
                         id = names(density_list)[bam_index]
@@ -692,12 +727,7 @@ if __name__ == "__main__":
                         gp = ggplot(d) + geom_bar(aes(x, y), width=1, position='identity', stat='identity', fill=color_list[[id]], alpha=%(alpha)s)
                         gp = gp + labs(y=labels[[id]])
                         gp = gp + scale_x_continuous(expand=c(0,0.2))
-
-                        if(packageVersion('ggplot2') >= '3.0.0'){ # fix problems with ggplot2 vs >3.0.0
-                                gp = gp + scale_y_continuous(breaks=ggplot_build(gp)$layout$panel_params[[1]]$y.major_source)
-                        } else {
-                                gp = gp + scale_y_continuous(breaks=ggplot_build(gp)$layout$panel_ranges[[1]]$y.major_source)
-                        }
+                        gp = set_y_scale(gp, density_list, %(args.fixed_y_scale)s)
 
                         # Aggregate junction counts
                         row_i = c()
@@ -763,7 +793,6 @@ if __name__ == "__main__":
                                         vjust=0.5, hjust=0.5, label.padding=unit(0.01, "lines"),
                                         label.size=NA, size=(base_size*0.352777778)*0.6
                                 )
-
 
                 #               gp = gp + annotation_custom(grob = rectGrob(x=0, y=0, gp=gpar(col="red"), just=c("left","bottom")), xmid, j[2], j[4], ymid)
                 #               gp = gp + annotation_custom(grob = rectGrob(x=0, y=0, gp=gpar(col="green"), just=c("left","bottom")), j[1], xmid, j[3], ymid)
@@ -842,6 +871,9 @@ if __name__ == "__main__":
                         "signal_height": args.height,
                         "ann_height": args.ann_height,
                         "alpha": args.alpha,
+                        "args.fixed_y_scale": (
+                            "TRUE" if args.fixed_y_scale else "FALSE"
+                        )
                         })
                 if os.getenv('GGSASHIMI_DEBUG') is not None:
                         with open("R_script", 'w') as r:
