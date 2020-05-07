@@ -43,7 +43,7 @@ def define_options():
         parser.add_argument("--alpha", type=float, default=0.5,
                 help="Transparency level for density histogram [default=%(default)s]")
         parser.add_argument("-P", "--palette", type=str,
-                help="Color palette file. tsv file with >=1 columns, where the color is the first column")
+                help="Color palette file. tsv file with >=1 columns, where the color is the first column. Both R color names and hexadecimal values are valid")
         parser.add_argument("-L", "--labels", type=int, dest="labels", default=1,
                 help="Index of column with labels (1-based) [default=%(default)s]")
         parser.add_argument("--height", type=float, default=2,
