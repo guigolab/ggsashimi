@@ -534,7 +534,7 @@ def plot(R_script):
 
 
 def colorize(d, p, color_factor):
-        levels = sorted(set(d.values()))
+        levels = list(d.values())
         n = len(levels)
         if n > len(p):
                 p = (p*n)[:n]
