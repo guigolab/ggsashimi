@@ -539,9 +539,9 @@ def colorize(d, p, color_factor):
         if n > len(p):
                 p = (p*n)[:n]
         if color_factor:
-                s = "color_list = list(%s)\n" %( ",".join('%s="%s"' %(k, p[levels.index(v)]) for k,v in d.items()) )
+                s = "color_list = list(%s)\n" %( ",".join('"%s"="%s"' %(k, p[levels.index(v)]) for k,v in d.items()) )
         else:
-                s = "color_list = list(%s)\n" %( ",".join('%s="%s"' %(k, "grey") for k,v in d.items()) )
+                s = "color_list = list(%s)\n" %( ",".join('"%s"="%s"' %(k, "grey") for k,v in d.items()) )
         return s
 
 
