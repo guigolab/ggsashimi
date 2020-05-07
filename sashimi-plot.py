@@ -18,7 +18,7 @@ def define_options():
                 3+col: additional columns
                 """)
         parser.add_argument("-c", "--coordinates", type=str,
-                help="Genomic region. Format: chr:start-end (1-based)")
+                help="Genomic region. Format: chr:start-end. Remember that bam coordinates are 0-based")
         parser.add_argument("-o", "--out-prefix", type=str, dest="out_prefix", default="sashimi",
                 help="Prefix for plot file name [default=%(default)s]")
         parser.add_argument("-S", "--out-strand", type=str, dest="out_strand", default="both",
