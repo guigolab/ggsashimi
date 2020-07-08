@@ -22,13 +22,19 @@ RUN apt-get update --fix-missing -qq && \
     && apt-get purge \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+# set locale
+RUN sed -i '/en_US.UTF-8/ s/^#\s\+//' /etc/locale.gen && \
+    locale-gen
+
+ENV LANG=en_US.UTF-8
+
 # install SAMtools
 RUN curl -fksSL https://github.com/samtools/samtools/releases/download/1.3.1/samtools-1.3.1.tar.bz2 | tar xj && \
     cd samtools-1.3.1 && \
     make all all-htslib && make install install-htslib
 
 ## Install R packages for ggplot2
-RUN R -e 'install.packages( c("ggplot2", "gridExtra", "data.table", "svglite"), repos="http://cloud.r-project.org/");' 
+RUN R -e 'install.packages( c("ggplot2", "gridExtra", "data.table", "svglite"), repos="http://cloud.r-project.org/");'
 
 # Copy ggsashimi in the docker image
 ADD sashimi-plot.py /

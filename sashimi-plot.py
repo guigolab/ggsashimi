@@ -3,7 +3,7 @@
 # Import modules
 from argparse import ArgumentParser
 import subprocess as sp
-import sys, re, copy, os
+import sys, re, copy, os, codecs
 from collections import OrderedDict
 
 def define_options():
@@ -170,7 +170,7 @@ def read_bam_input(f, overlay, color, label):
                 bn = f.strip().split("/")[-1].strip(".bam")
                 yield bn, f, None, None, bn
                 return
-        with open(f) as openf:
+        with codecs.open(f, encoding='utf-8') as openf:
                 for line in openf:
                         line_sp = line.strip().split("\t")
                         bam = get_bam_path(f, line_sp[1])
@@ -527,7 +527,7 @@ def make_R_lists(id_list, d, overlay_dict, aggr, intersected_introns):
 
 def plot(R_script):
         p = sp.Popen("R --vanilla --slave", shell=True, stdin=sp.PIPE)
-        p.communicate(input=R_script.encode())
+        p.communicate(input=R_script.encode('utf-8'))
         p.stdin.close()
         p.wait()
         return
