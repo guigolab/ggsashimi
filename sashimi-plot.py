@@ -9,7 +9,7 @@ from collections import OrderedDict
 def define_options():
         # Argument parsing
         parser = ArgumentParser(description='Create sashimi plot for a given genomic region')
-        parser.add_argument("-b", "--bam", type=str,
+        parser.add_argument("-b", "--bam", type=str, required=True,
                 help="""
                 Individual bam file or file with a list of bam files.
                 In the case of a list of files the format is tsv:
@@ -17,7 +17,7 @@ def define_options():
                 2col: path of bam file,
                 3+col: additional columns
                 """)
-        parser.add_argument("-c", "--coordinates", type=str,
+        parser.add_argument("-c", "--coordinates", type=str, required=True,
                 help="Genomic region. Format: chr:start-end. Remember that bam coordinates are 0-based")
         parser.add_argument("-o", "--out-prefix", type=str, dest="out_prefix", default="sashimi",
                 help="Prefix for plot file name [default=%(default)s]")
