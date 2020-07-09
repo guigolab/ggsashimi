@@ -244,6 +244,7 @@ def shrink_density(x, y, introns):
 
 def shrink_junctions(dons, accs, introns):
         new_dons, new_accs = [0]*len(dons), [0]*len(accs)
+        real_introns = dict()
         shift_acc = 0
         shift_don = 0
         s = set()
@@ -251,6 +252,8 @@ def shrink_junctions(dons, accs, introns):
         for a,b in introns:
                 l = b - a
                 shift_acc += l-int(l**0.7)
+                real_introns[a - shift_don] = a
+                real_introns[b - shift_acc] = b
                 for i, (don, acc) in enumerate(junctions):
                         if a >= don and b <= acc:
                                 if (don,acc) not in s:
@@ -260,7 +263,7 @@ def shrink_junctions(dons, accs, introns):
                                         new_accs[i] = acc - shift_acc
                                 s.add((don,acc))
                 shift_don = shift_acc
-        return new_dons, new_accs
+        return real_introns, new_dons, new_accs
 
 def read_palette(f):
         palette = "#ff0000", "#00ff00", "#0000ff", "#000000"
@@ -485,19 +488,23 @@ def make_R_lists(id_list, d, overlay_dict, aggr, intersected_introns):
         }
         id_list = id_list if not overlay_dict else overlay_dict.keys()
         # Iterate over ids to get bam signal and junctions
+        shrinked_introns = dict()
         for k in id_list:
+                shrinked_introns_k, shrinked_intronsid = dict(), dict()
                 x, y, dons, accs, yd, ya, counts = [], [], [], [], [], [], []
                 if not overlay_dict:
                         x, y, dons, accs, yd, ya, counts = d[k]
                         if intersected_introns:
                                 x, y = shrink_density(x, y, intersected_introns)
-                                dons, accs = shrink_junctions(dons, accs, intersected_introns)
+                                shrinked_introns_k, dons, accs = shrink_junctions(dons, accs, intersected_introns)
+                                shrinked_introns.update(shrinked_introns_k)
                 else:
                         for id in overlay_dict[k]:
                                 xid, yid, donsid, accsid, ydid, yaid, countsid = d[id]
                                 if intersected_introns:
                                         xid, yid = shrink_density(xid, yid, intersected_introns)
-                                        donsid, accsid = shrink_junctions(donsid, accsid, intersected_introns)
+                                        shrinked_intronsid, donsid, accsid = shrink_junctions(donsid, accsid, intersected_introns)
+                                        shrinked_introns.update(shrinked_intronsid)
                                 x += xid
                                 y += yid
                                 dons += donsid
@@ -515,14 +522,24 @@ def make_R_lists(id_list, d, overlay_dict, aggr, intersected_introns):
                 density_list[["%(id)s"]] = data.frame(x=c(%(x)s), y=c(%(y)s))
                 junction_list[["%(id)s"]] = data.frame(x=c(%(dons)s), xend=c(%(accs)s), y=c(%(yd)s), yend=c(%(ya)s), count=c(%(counts)s))
                 """ %({
-                        "id": k,
+                        'id': k,
                         'x' : ",".join(map(str, x)),
                         'y' : ",".join(map(str, y)),
                         'dons' : ",".join(map(str, dons)),
                         'accs' : ",".join(map(str, accs)),
                         'yd' : ",".join(map(str, yd)),
                         'ya' : ",".join(map(str, ya)),
-                        'counts' : ",".join(map(str, counts)),
+                        'counts' : ",".join(map(str, counts))
+                })
+        if intersected_introns:
+                s+= """
+                coord_dict = data.frame(shrinked=c(%(shrinked_introns_keys)s), real=c(%(shrinked_introns_values)s))
+                intersected_introns = data.frame(real_x=c(%(intersected_introns_x)s), real_xend=c(%(intersected_introns_xend)s))
+                """ %({
+                        'shrinked_introns_keys': ','.join(map(str, shrinked_introns.keys())),
+                        'shrinked_introns_values': ','.join(map(str, shrinked_introns.values())),
+                        'intersected_introns_x': ','.join([str(coord[0]) for coord in intersected_introns]),
+                        'intersected_introns_xend': ','.join([str(coord[1]) for coord in intersected_introns])
                 })
         return s
 
@@ -680,11 +697,19 @@ if __name__ == "__main__":
                         vs = 0
                 }
 
-                get_breaks = function(p) {
+                get_breaks = function(p, axis = 'y') {
                         if(packageVersion('ggplot2') >= '3.0.0'){ # fix problems with ggplot2 vs >3.0.0
-                                breaks = ggplot_build(p)$layout$panel_params[[1]]$y.major_source
+                                if(axis == 'y'){
+                                        breaks = ggplot_build(p)$layout$panel_params[[1]]$y.major_source
+                                } else{
+                                        breaks = ggplot_build(p)$layout$panel_params[[1]]$x.major_source
+                                }
                         } else {
-                                breaks = ggplot_build(p)$layout$panel_ranges[[1]]$y.major_source
+                                if(axis == 'y'){
+                                        breaks = ggplot_build(p)$layout$panel_ranges[[1]]$y.major_source
+                                } else {
+                                        breaks = ggplot_build(p)$layout$panel_ranges[[1]]$x.major_source
+                                }
                         }
                         return(breaks)
                 }
@@ -694,7 +719,62 @@ if __name__ == "__main__":
                         maxheight = max(maxsig)
                         dM = data.table(density_list[[names(density_list)[which.max(maxsig)]]])
                         gpM = ggplot(dM) + geom_bar(aes(x, y), position='identity', stat='identity')
-                        breaks = get_breaks(gpM)
+                        breaks_y = get_breaks(gpM)
+                }
+
+                if(exists('coord_dict')){
+                        all_pos_shrinked = do.call(rbind, density_list)$x
+                        s2r = merge(intersected_introns, coord_dict, by.x = 'real_xend', by.y = 'real')
+                        s2r = merge(s2r, coord_dict, by.x = 'real_x', by.y = 'real', suffixes = c('_xend', '_x'))
+                        gpS = ggplot(data.table(density_list[[1]])) + geom_bar(aes(x, y), position='identity', stat='identity')
+                        breaks_x_shrinked = get_breaks(gpS, axis = 'x')
+                        breaks_x = c()
+                        for (b in breaks_x_shrinked){
+                                iintron = FALSE
+                                for (j in 1:nrow(s2r)){
+                                        l = s2r[j, ]
+                                        if(b >= l$shrinked_x && b <= l$shrinked_xend){
+                                                # Intersected intron
+                                                p = (b-l$shrinked_x)/(l$shrinked_xend - l$shrinked_x)
+                                                realb = round(l$real_x + p*(l$real_xend - l$real_x))
+                                                breaks_x = c(breaks_x, realb)
+                                                iintron = TRUE
+                                                break
+                                        }
+                                }
+                                if (!iintron){
+                                        # Exon, upstream/downstream intergenic region or intron (not intersected)
+                                        if(b <= min(s2r$shrinked_x)) {
+                                                l <- s2r[which.min(s2r$shrinked_x), ]
+                                                if(any(b == all_pos_shrinked)){
+                                                        # Boundary (subtract)
+                                                        s = l$shrinked_x - b
+                                                        realb = l$real_x - s
+                                                        breaks_x = c(breaks_x, realb)
+                                                } else {
+                                                        stop('ERROR: b not in x_shrinked')
+                                                }
+                                        } else if (b >= max(s2r$shrinked_xend)){
+                                                l <- s2r[which.max(s2r$shrinked_xend), ]
+                                                if(any(b == all_pos_shrinked)){
+                                                        # Boundary (sum)
+                                                        s = b - l$shrinked_xend
+                                                        realb = l$real_xend + s
+                                                        breaks_x = c(breaks_x, realb)
+                                                } else {
+                                                        stop('ERROR: b not in x_shrinked')
+                                                }
+                                        } else {
+                                                delta = b-s2r$shrinked_xend
+                                                delta[delta < 0] = Inf
+                                                l = s2r[which.min(delta), ]
+                                                # Internal (sum)
+                                                s = b - l$shrinked_xend
+                                                realb = l$real_xend + s
+                                                breaks_x = c(breaks_x, realb)
+                                        }
+                                }
+                        }
                 }
 
                 density_grobs = list();
@@ -708,14 +788,18 @@ if __name__ == "__main__":
                         # Density plot
                         gp = ggplot(d) + geom_bar(aes(x, y), width=1, position='identity', stat='identity', fill=color_list[[id]], alpha=%(alpha)s)
                         gp = gp + labs(y=labels[[id]])
-                        gp = gp + scale_x_continuous(expand=c(0,0.2))
+                        if(exists('coord_dict')) {
+                                gp = gp + scale_x_continuous(expand=c(0, 0.25), breaks = breaks_x_shrinked, labels = breaks_x)
+                        } else {
+                                gp = gp + scale_x_continuous(expand=c(0, 0.25))
+                        }
 
                         if(!%(fix_y_scale)s){
                                 maxheight = max(d[['y']])
-                                breaks = get_breaks(gp)
-                                gp = gp + scale_y_continuous(breaks = breaks)
+                                breaks_y = get_breaks(gp)
+                                gp = gp + scale_y_continuous(breaks = breaks_y)
                         } else {
-                                gp = gp + scale_y_continuous(breaks = breaks, limits = c(NA, maxheight))
+                                gp = gp + scale_y_continuous(breaks = breaks_y, limits = c(NA, maxheight))
                         }
 
                         # Aggregate junction counts
