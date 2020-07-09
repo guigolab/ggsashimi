@@ -536,7 +536,7 @@ def plot(R_script):
 
 
 def colorize(d, p, color_factor):
-        levels = list(d.values())
+        levels = list(OrderedDict.fromkeys(d.values()).keys())
         n = len(levels)
         if n > len(p):
                 p = (p*n)[:n]
@@ -582,11 +582,11 @@ if __name__ == "__main__":
                 id_list.append(id)
                 label_dict[id] = label_text
                 for strand in a:
-                        # Store junction information                 
-                        if args.junctions_bed: 
+                        # Store junction information
+                        if args.junctions_bed:
                                 for k,v in zip(junctions[strand].keys(), junctions[strand].values()):
                                         if v > args.min_coverage:
-                                                junctions_list.append('\t'.join([args.coordinates.split(':')[0], str(k[0]), str(k[1]), id, str(v), strand]))                     
+                                                junctions_list.append('\t'.join([args.coordinates.split(':')[0], str(k[0]), str(k[1]), id, str(v), strand]))
                         bam_dict[strand][id] = prepare_for_R(a[strand], junctions[strand], args.coordinates, args.min_coverage)
                 if color_level is None:
                         color_dict.setdefault(id, id)
@@ -603,7 +603,7 @@ if __name__ == "__main__":
                 exit(1)
 
         # Write junctions to BED
-        if args.junctions_bed: 
+        if args.junctions_bed:
                 if not args.junctions_bed.endswith('.bed'):
                         args.junctions_bed = args.junctions_bed + '.bed'
                 jbed = open(args.junctions_bed, 'w')
@@ -688,7 +688,7 @@ if __name__ == "__main__":
                         }
                         return(breaks)
                 }
-		
+
                 if(%(fix_y_scale)s) {
                         maxsig = unlist(lapply(density_list, function(df){max(df$y)}))
                         maxheight = max(maxsig)
