@@ -575,12 +575,12 @@ if __name__ == "__main__":
         for id, bam, overlay_level, color_level, label_text in read_bam_input(args.bam, args.overlay, args.color_factor, args.labels):
                 if not os.path.isfile(bam):
                         continue
-                id_list.append(id)
-                label_dict[id] = label_text
                 a, junctions = read_bam(bam, args.coordinates, args.strand)
                 if a.keys() == ["+"] and all(map(lambda x: x==0, list(a.values()[0]))):
-                        print("ERROR: No reads in the specified area.")
-                        exit(1)
+                        print("WARN: Sample {} has no reads in the specified area.".format(id))
+                        continue
+                id_list.append(id)
+                label_dict[id] = label_text
                 for strand in a:
                         # Store junction information                 
                         if args.junctions_bed: 
