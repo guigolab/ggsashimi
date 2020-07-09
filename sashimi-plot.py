@@ -46,6 +46,8 @@ def define_options():
                 help="Color palette file. tsv file with >=1 columns, where the color is the first column. Both R color names and hexadecimal values are valid")
         parser.add_argument("-L", "--labels", type=int, dest="labels", default=1,
                 help="Index of column with labels (1-based) [default=%(default)s]")
+        parser.add_argument("--fix-y-scale", default=False, action="store_true", dest = "fix_y_scale",
+                help="Fix y-scale across individual signal plots [default=%(default)s]")
         parser.add_argument("--height", type=float, default=2,
                 help="Height of the individual signal plot in inches [default=%(default)s]")
         parser.add_argument("--ann-height", type=float, default=1.5, dest="ann_height",
@@ -678,25 +680,42 @@ if __name__ == "__main__":
                         vs = 0
                 }
 
+                get_breaks = function(p) {
+                        if(packageVersion('ggplot2') >= '3.0.0'){ # fix problems with ggplot2 vs >3.0.0
+                                breaks = ggplot_build(p)$layout$panel_params[[1]]$y.major_source
+                        } else {
+                                breaks = ggplot_build(p)$layout$panel_ranges[[1]]$y.major_source
+                        }
+                        return(breaks)
+                }
+		
+                if(%(fix_y_scale)s) {
+                        maxsig = unlist(lapply(density_list, function(df){max(df$y)}))
+                        maxheight = max(maxsig)
+                        dM = data.table(density_list[[names(density_list)[which.max(maxsig)]]])
+                        gpM = ggplot(dM) + geom_bar(aes(x, y), position='identity', stat='identity')
+                        breaks = get_breaks(gpM)
+                }
+
                 density_grobs = list();
 
-                      for (bam_index in 1:length(density_list)) {
+                for (bam_index in 1:length(density_list)) {
 
                         id = names(density_list)[bam_index]
                         d = data.table(density_list[[id]])
                         junctions = data.table(junction_list[[id]])
-
-                        maxheight = max(d[['y']])
 
                         # Density plot
                         gp = ggplot(d) + geom_bar(aes(x, y), width=1, position='identity', stat='identity', fill=color_list[[id]], alpha=%(alpha)s)
                         gp = gp + labs(y=labels[[id]])
                         gp = gp + scale_x_continuous(expand=c(0,0.2))
 
-                        if(packageVersion('ggplot2') >= '3.0.0'){ # fix problems with ggplot2 vs >3.0.0
-                                gp = gp + scale_y_continuous(breaks=ggplot_build(gp)$layout$panel_params[[1]]$y.major_source)
+                        if(!%(fix_y_scale)s){
+                                maxheight = max(d[['y']])
+                                breaks = get_breaks(gp)
+                                gp = gp + scale_y_continuous(breaks = breaks)
                         } else {
-                                gp = gp + scale_y_continuous(breaks=ggplot_build(gp)$layout$panel_ranges[[1]]$y.major_source)
+                                gp = gp + scale_y_continuous(breaks = breaks, limits = c(NA, maxheight))
                         }
 
                         # Aggregate junction counts
@@ -842,6 +861,7 @@ if __name__ == "__main__":
                         "signal_height": args.height,
                         "ann_height": args.ann_height,
                         "alpha": args.alpha,
+                        "fix_y_scale": ("TRUE" if args.fix_y_scale else "FALSE")
                         })
                 if os.getenv('GGSASHIMI_DEBUG') is not None:
                         with open("R_script", 'w') as r:
