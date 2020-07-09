@@ -845,9 +845,9 @@ if __name__ == "__main__":
                 # Save plot to file in the requested format
                 if ("%(out_format)s" == "tiff"){
                         # TIFF images will be lzw-compressed
-                        ggsave("%(out)s", plot = argrobs, device = "tiff", width = width, height = height, units = "in", dpi = %(out_resolution)s, compression = "lzw")
+                        ggsave("%(out)s", plot = argrobs, device = "tiff", width = width, height = height, units = "in", dpi = %(out_resolution)s, compression = "lzw", limitsize = FALSE)
                 } else {
-                        ggsave("%(out)s", plot = argrobs, device = "%(out_format)s", width = width, height = height, units = "in", dpi = %(out_resolution)s)
+                        ggsave("%(out)s", plot = argrobs, device = "%(out_format)s", width = width, height = height, units = "in", dpi = %(out_resolution)s, limitsize = FALSE)
                 }
 
                 dev.log = dev.off()
