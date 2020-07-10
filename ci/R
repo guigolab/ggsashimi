@@ -1,0 +1,2 @@
+#!/bin/bash
+docker run -i -u $(id -u):$(id -g) -v $PWD:$PWD -w $PWD ci R "$@"
