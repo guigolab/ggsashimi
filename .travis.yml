@@ -9,7 +9,7 @@ python:
 
 env:
   - R_VER=3.3.3 GGPLOT_VER=2.2.1
-  - R_VER=3.5.1 GGPLOT_VER=3.3.2
+  - R_VER=3.5.1 GGPLOT_VER=3.0.0
 
 addons:
   apt:
