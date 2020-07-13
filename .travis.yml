@@ -1,20 +1,15 @@
 language: python
 
-env:
-  global:
-    - R_VER=3.3.3
-    - GGPLOT_VER=2.2.1
+python:
+  - "2.7"
+  - "3.5"
+  - "3.6"
+  - "3.7"
+  - "3.8"
 
-matrix:
-    include:
-        - python: "2.7"
-          env: TOXENV=py27
-        - python: "3.4"
-          env: TOXENV=py34
-        - python: "3.5"
-          env: TOXENV=py35
-        - python: "3.6"
-          env: TOXENV=py36
+env:
+  - R_VER=3.3.3 GGPLOT_VER=2.2.1
+  - R_VER=3.5.1 GGPLOT_VER=3.3.2
 
 addons:
   apt:
@@ -34,7 +29,7 @@ install:
   - export PATH=$PWD/bin:$PATH && cd -
   - export PATH=$PWD/ci:$PATH
   - docker build -t ci --build-arg R_VER --build-arg GGPLOT_VER -f ci/Dockerfile .
-  - pip install tox
+  - pip install tox-travis
 
 script:
   - tox
