@@ -919,7 +919,8 @@ if __name__ == "__main__":
 
                                 # Find intron midpoint
                                 xmid = round(mean(j[1:2]), 1)
-                                ymid = max(j[3:4]) * 1.2
+                                ypad = 0.2*(j[2]-j[1])/(max(d[,x])-min(d[,x]))
+                                ymid = max(j[3:4]) * (1 + ypad)
 
                                 # Thickness of the arch
                                 lwd = scale_lwd(j[5]/j_tot_counts)
@@ -931,7 +932,7 @@ if __name__ == "__main__":
                                 # Choose position of the arch (top or bottom)
                                 nss = i
                                 if (nss%%%%2 == 0) {  #bottom
-                                        ymid = -0.3 * maxheight
+                                        ymid = -(0.2 + ypad) * maxheight
                                         # Draw the arcs
                                         # Left
                                         curve = xsplineGrob(x=c(0, 0, 1, 1), y=c(1, 0, 0, 0), shape=1, gp=curve_par)
