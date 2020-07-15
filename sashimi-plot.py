@@ -697,38 +697,18 @@ if __name__ == "__main__":
                         vs = 0
                 }
 
-                get_breaks = function(p, axis = 'y') {
-                        if(packageVersion('ggplot2') >= '3.0.0'){ # fix problems with ggplot2 vs >3.0.0
-                                if(axis == 'y'){
-                                        breaks = ggplot_build(p)$layout$panel_params[[1]]$y.major_source
-                                } else{
-                                        breaks = ggplot_build(p)$layout$panel_params[[1]]$x.major_source
-                                }
-                        } else {
-                                if(axis == 'y'){
-                                        breaks = ggplot_build(p)$layout$panel_ranges[[1]]$y.major_source
-                                } else {
-                                        breaks = ggplot_build(p)$layout$panel_ranges[[1]]$x.major_source
-                                }
-                        }
-                        return(breaks)
-                }
-
                 if(%(fix_y_scale)s) {
-                        maxsig = unlist(lapply(density_list, function(df){max(df$y)}))
-                        maxheight = max(maxsig)
-                        dM = data.table(density_list[[names(density_list)[which.max(maxsig)]]])
-                        gpM = ggplot(dM) + geom_bar(aes(x, y), position='identity', stat='identity')
-                        breaks_y = get_breaks(gpM)
+                        maxheight = max(unlist(lapply(density_list, function(df){max(df$y)})))
+                        breaks_y = labeling::extended(0, maxheight, m = 4)
                 }
 
                 if(exists('coord_dict')){
                         all_pos_shrinked = do.call(rbind, density_list)$x
                         s2r = merge(intersected_introns, coord_dict, by.x = 'real_xend', by.y = 'real')
                         s2r = merge(s2r, coord_dict, by.x = 'real_x', by.y = 'real', suffixes = c('_xend', '_x'))
-                        gpS = ggplot(data.table(density_list[[1]])) + geom_bar(aes(x, y), position='identity', stat='identity')
-                        breaks_x_shrinked = get_breaks(gpS, axis = 'x')
+                        breaks_x_shrinked = labeling::extended(min(all_pos_shrinked), max(all_pos_shrinked), m = 5)
                         breaks_x = c()
+                        out_range = c()
                         for (b in breaks_x_shrinked){
                                 iintron = FALSE
                                 for (j in 1:nrow(s2r)){
@@ -752,7 +732,7 @@ if __name__ == "__main__":
                                                         realb = l$real_x - s
                                                         breaks_x = c(breaks_x, realb)
                                                 } else {
-                                                        stop('ERROR: b not in x_shrinked')
+                                                        out_range <- c(out_range, which(breaks_x_shrinked == b))
                                                 }
                                         } else if (b >= max(s2r$shrinked_xend)){
                                                 l <- s2r[which.max(s2r$shrinked_xend), ]
@@ -762,7 +742,7 @@ if __name__ == "__main__":
                                                         realb = l$real_xend + s
                                                         breaks_x = c(breaks_x, realb)
                                                 } else {
-                                                        stop('ERROR: b not in x_shrinked')
+                                                        out_range <- c(out_range, which(breaks_x_shrinked == b))
                                                 }
                                         } else {
                                                 delta = b-s2r$shrinked_xend
@@ -774,6 +754,9 @@ if __name__ == "__main__":
                                                 breaks_x = c(breaks_x, realb)
                                         }
                                 }
+                        }
+                        if(length(out_range)) {
+                                breaks_x_shrinked = breaks_x_shrinked[-out_range]
                         }
                 }
 
@@ -796,7 +779,7 @@ if __name__ == "__main__":
 
                         if(!%(fix_y_scale)s){
                                 maxheight = max(d[['y']])
-                                breaks_y = get_breaks(gp)
+                                breaks_y = labeling::extended(0, maxheight, m = 4)
                                 gp = gp + scale_y_continuous(breaks = breaks_y)
                         } else {
                                 gp = gp + scale_y_continuous(breaks = breaks_y, limits = c(NA, maxheight))

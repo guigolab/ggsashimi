@@ -3,9 +3,9 @@ set -e
 set -u
 
 # checksums
-sashimi_md5="13c062bd112b65cc7735964842f32435"
-sashimi_anno_md5="100b08b32a3a8c7bbab880c58b2cffed"
-sashimi_color_md5="f6586c7e54b35346c4eca634f54b267e"
+sashimi_md5="b8ee3a415a80030ce92de15f40054a40"
+sashimi_anno_md5="131d3ad1bb27c91693c342fbc0667d48"
+sashimi_color_md5="41fee9e7e51a13a09c6d068cc6cb93cf"
 
 fail() {
     echo ${1-""} >&2 && exit 1
