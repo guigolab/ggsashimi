@@ -807,8 +807,8 @@ if __name__ == "__main__":
                                 j = as.numeric(junctions[i,1:5])
 
                                 if ("%(args.aggr)s" != "") {
-                                        j[3] = as.numeric(d[x==j[1]-1,y])
-                                        j[4] = as.numeric(d[x==j[2]+1,y])
+                                        j[3] = ifelse(length(d[x==j[1]-1,y])==0, 0, max(as.numeric(d[x==j[1]-1,y])))
+                                        j[4] = ifelse(length(d[x==j[2]+1,y])==0, 0, max(as.numeric(d[x==j[2]+1,y])))
                                 }
 
                                 # Find intron midpoint
