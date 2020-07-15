@@ -422,7 +422,8 @@ def gtf_for_ggplot(annotation, start, end, arrow_bins):
                 gtfp = gtfp + geom_segment(data=ann_list[['exons']], aes(x=start, xend=end, y=tx, yend=tx), size=5, alpha=1)
         }
         gtfp = gtfp + scale_y_discrete(expand=c(0,0.5))
-        gtfp = gtfp + scale_x_continuous(expand=c(0,0.25), limits = c(%s,%s))
+        gtfp = gtfp + scale_x_continuous(expand=c(0,0.25))
+        gtfp = gtfp + coord_cartesian(xlim = c(%s,%s)) 
         gtfp = gtfp + labs(y=NULL)
         gtfp = gtfp + theme(axis.line = element_blank(), axis.text.x = element_blank(), axis.ticks = element_blank())
         """ %(start, end)
