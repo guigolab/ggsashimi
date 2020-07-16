@@ -1,4 +1,5 @@
 env
+.envrc
 *.pyc
 .pytest_cache
 .tox
