@@ -381,7 +381,7 @@ def gtf_for_ggplot(annotation, start, end, arrow_bins):
                 txarrows = data.table()
                 introns = ann_list[['introns']]
                 # Add right-pointing arrows for plus strand
-                if ("+" %%in%% introns$strand) {
+                if ("+" %%in%% introns$strand && nrow(introns[strand=="+" & end-start>5, ]) > 0) {
                         txarrows = rbind(
                                 txarrows,
                                 introns[strand=="+" & end-start>5, list(
@@ -392,7 +392,7 @@ def gtf_for_ggplot(annotation, start, end, arrow_bins):
                         )
                 }
                 # Add left-pointing arrows for minus strand
-                if ("-" %%in%% introns$strand) {
+                if ("-" %%in%% introns$strand && nrow(introns[strand=="-" & end-start>5, ]) > 0) {
                         txarrows = rbind(
                                 txarrows,
                                 introns[strand=="-" & end-start>5, list(
