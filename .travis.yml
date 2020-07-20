@@ -1,43 +1,46 @@
 language: python
 dist: bionic
-
 python:
-  - "2.7"
-  - "3.5"
-  - "3.6"
-  - "3.7"
-  - "3.8"
-
+- '2.7'
+- '3.5'
+- '3.6'
+- '3.7'
+- '3.8'
+jobs:
+  include:
+  - stage: release
+    env:
+    - secure: Q51zmekFkaAc52qj4PJusD8ovl72rkrzCxNgD4SdYtJTpYesi/ZXDKD7bSjjZeV288nM4GGYdEz1DH1VhRm+6BltpdYa+Hx8niTZGR/scBUcO9O/99AlVokpVbaHZ45XbkpqshUjhHL3HN2jZvzoPC70vr5sWqNOOMm7d9DkBw89M+UGQ45t9aUVt2bswNmCHekApOowUw/3COJ1ILA04nIBX/fyqCRc86fQHp5ggbMDY67R5k9TJ8Id+NWyael5mcomCo9kJDgMzJRDdRYUqyTMqF7awqew1HUXCb19LKFJufM/m5Mewdkq43oM/lYzQtO/3X4Gjjzq1vqWPF80d+6mW55c38axZZv7KcnWCz2h52To+OQCvpQJdKxCcZFlegO26nDh/RNAaVhIP4dsQtQ8Bm6yzgocC2qgauBAXrLI+xR37GdqZF4LKcXxoTnZDOpRV84lb4gvbzWUQr+01sZvw1K0gkr/P3OTHeYTHDihXc0YmX/pB/99/gTwtgljTQ1abJwq7H9O8NaNUcO51szsAHsbCxkEgG4azL7RTCBO5ZYFGjZqUmpHI7D0xZlMAWjz3iOmJXeVBMNIIa99SO2EaQM3d7bmJ0LhtAhXii/AMkrj7ovnElhJEOUwDpvEKWZQi06NTSww8M0PlImrBEyp7o0uXsCoXNcUpuQiVhc=
+    - secure: koAlSZJ860rJhlnPhoxYLbLdPNeIs+9fAL+4UYRYL/694VclQHgknkFcrItSDWDWDHfokVo1GUi1uywNXr5jahy4oQ9vB0N5jUn69yzsvBPwxtPOsMXFOCnqUZw7q6wJJEBxUYOzqz2s4PtqKRISi2lFAQmC6JiwAV7+d9XtprWMJ9Qt4RPT4ijF097sl5XckOdZxP1R8pkyuMjiQx5JvrsNUbY5ok7VSkQr2FsTA5I2nZeHcDWu2gMpuFkDAC8JYmKdCoBNRZ3fs7gNGjMocNegTNvtncwb9ftQYo6+aEFpZaxsEGFoFTZ3Z0dDsy3wtOCBg5+InI2YMWgtvg8yWyoHtBOtizHpSqqIiMrzxDLcu/Z49Gcc5MABceVYi/G1lEPcfC+iQyFL9g5fEqvgaqz5UKts2um/7USP1id5a9zcDX+O+My2D3LIgIs7PR9kJolFX7DJncT4HePer8s6QUSfKMfLIjzuJNELI4TQhVjaLacJVgVBjc15Ky0Maqd8haZbyXMN4uak1LswmHKScBtINXwoebX8MhcGVZHP8/ZG6AHEWTpZ2MWeRm/qxUvuSJkgzlWoa/eun0uzP7fUEYxzYV5Wk/zpJmoKq0ZpyLYs4JyYOs8Jhb9h9JLwhT57VZn2JfnU3EjKN5x3iTU2PnSDtb5h6rYNvaaajYMHeuQ=
+    - secure: sTAnnP6Bdvhbhz8223x8Zs85v5wyP47IgekX57vmFDRMziG/EG6IwlznlUMQp71i+ALDLtjsu7Y07/GbmIxUw4Xtjt7/EL78XnFqEtFeTHIeqetGtq1eRve/7ry+kIT7tJMN/V4qHwXhedFBZM6CGncl6b1J/IcrcN9ZrBBcydEUibK6uIROwoczkk7McWpd4zF9lrS8eue4YApXpPkSwTePUGtYHJS1E/ht2YeXTbR7utZo63KrB+Kf28OvRSU7odaZKRvyBQcCjv/6yetSaExAlerII7eoQVEBVbMP1/VTvaFKA7D/8XDRgjGjI/8bpMBbSQUpAVQMkroGZaCRYu6HMC83zYKNfQ4uoAhpQMYcP08FacQQ9zaKYq52BenPddHmMNoZ6Xuvtfc+dwIA66WnIMjAOv2Q7Uf5sy1loo/occKcvO7mwcmLFqVi54ccLlxBGBVkmSpccflJPRia6UVSCTa5caeBka1IKOZZlt/KwCzIculC3Mz7ShW2dw5UgImxTUl3nqDE219EusvIUgTdL3uRBaUYU91AjZEj766Ve5vO+2Nx2crUci44bJOyrodRsWJX1Qr0JuSCa/PgG9GLHQxMeqIO4+OH3h6+1y1o3wM1jqn/WapzYZzcWKrr0QjVsr5rX6O4pYUg9Gj1EKX0Hm55xCeFTkgbkpKs9zw=
+    install:
+    - go get github.com/github-release/github-release
+    script:
+    - bash ci/release.sh
+    if: tag =~ ^v
 env:
   global:
-    - SAMTOOLS_VER=1.3.1
+  - SAMTOOLS_VER=1.3.1
   jobs:
-    - R_VER=3.3.2 GGPLOT_VER=2.2.1
-
+  - R_VER=3.3.2 GGPLOT_VER=2.2.1
 install:
-  - sudo apt update
-  # Better to have same version as the env python
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
-    else
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-    fi
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - source "$HOME/miniconda/etc/profile.d/conda.sh"
-  - hash -r
-  - conda config --set always_yes yes --set changeps1 no
-  - conda update -q conda
-  - conda config --add channels defaults
-  - conda config --add channels bioconda
-  - conda config --add channels conda-forge
-
-  # For debugging
-  - conda info -a
-
-  - conda create -q -n test-env samtools=$SAMTOOLS_VER r-base=$R_VER r-ggplot2=$GGPLOT_VER r-gridextra r-data.table r-svglite
-  - conda activate test-env
-  - pip install tox-travis
-
+- sudo apt update
+- if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh
+  -O miniconda.sh; else wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+  -O miniconda.sh; fi
+- bash miniconda.sh -b -p $HOME/miniconda
+- source "$HOME/miniconda/etc/profile.d/conda.sh"
+- hash -r
+- conda config --set always_yes yes --set changeps1 no
+- conda update -q conda
+- conda config --add channels defaults
+- conda config --add channels bioconda
+- conda config --add channels conda-forge
+- conda info -a
+- conda create -q -n test-env samtools=$SAMTOOLS_VER r-base=$R_VER r-ggplot2=$GGPLOT_VER
+  r-gridextra r-data.table r-svglite
+- conda activate test-env
+- pip install tox-travis
 script:
-  - tox
-  - bash ci/run.sh
+- tox
+- bash ci/run.sh
