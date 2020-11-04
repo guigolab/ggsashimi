@@ -3,7 +3,7 @@
 # Import modules
 from argparse import ArgumentParser
 import subprocess as sp
-import sys, re, copy, os, codecs
+import sys, re, copy, os, codecs, gzip
 from collections import OrderedDict
 
 def define_options():
@@ -285,8 +285,14 @@ def read_gtf(f, c):
                         el_chr, _, el, el_start, el_end, _, strand, _, tags = line.strip().split("\t")
                         if el_chr != chr:
                                 continue
+                        if el not in ("transcript", "exon"):
+                                continue
                         d = dict(kv.strip().split(" ") for kv in tags.strip(";").split("; "))
-                        transcript_id = d["transcript_id"]
+                        try:
+                                transcript_id = d["transcript_id"]
+                        except KeyError as e:
+                                print(line)
+                                exit(e)
                         el_start, el_end = int(el_start) -1, int(el_end)
                         strand = '"' + strand + '"'
                         if el == "transcript":
