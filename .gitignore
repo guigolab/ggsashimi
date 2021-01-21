@@ -5,3 +5,4 @@ env
 .tox
 R_script
 *.pdf
+tmp
