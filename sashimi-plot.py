@@ -3,7 +3,7 @@
 # Import modules
 from argparse import ArgumentParser
 import subprocess as sp
-import sys, re, copy, os, codecs
+import sys, re, copy, os, codecs, gzip
 from collections import OrderedDict
 
 def define_options():
@@ -278,7 +278,7 @@ def read_gtf(f, c):
         transcripts = OrderedDict()
         chr, start, end = parse_coordinates(c)
         end = end -1
-        with open(f) as openf:
+        with gzip.open(f) if f.endswith(".gz") else open(f) as openf:
                 for line in openf:
                         if line.startswith("#"):
                                 continue
