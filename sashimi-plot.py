@@ -285,8 +285,7 @@ def read_gtf(f, c):
                         el_chr, _, el, el_start, el_end, _, strand, _, tags = line.strip().split("\t")
                         if el_chr != chr:
                                 continue
-                        d = dict(kv.strip().split(" ") for kv in tags.strip(";").split("; "))
-                        transcript_id = d["transcript_id"]
+                        transcript_id = re.findall('transcript_id ("[^"]+")', tags)[0]
                         el_start, el_end = int(el_start) -1, int(el_end)
                         strand = '"' + strand + '"'
                         if el == "transcript":
