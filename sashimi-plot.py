@@ -285,7 +285,13 @@ def read_gtf(f, c):
                         el_chr, _, el, el_start, el_end, _, strand, _, tags = line.strip().split("\t")
                         if el_chr != chr:
                                 continue
-                        transcript_id = re.findall('transcript_id ("[^"]+")', tags)[0]
+                        if el not in ("transcript", "exon"):
+                                continue
+                        try: 
+                                transcript_id = re.findall('transcript_id ("[^"]+")', tags)[0]
+                        except KeyError:
+                                print("ERROR: 'transcript_id' attribute is missing in the GTF file.")
+                                exit(1)
                         el_start, el_end = int(el_start) -1, int(el_end)
                         strand = '"' + strand + '"'
                         if el == "transcript":
