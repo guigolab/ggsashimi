@@ -704,8 +704,36 @@ if __name__ == "__main__":
                 }
 
                 if(%(fix_y_scale)s) {
+                        
                         maxheight = max(unlist(lapply(density_list, function(df){max(df$y)})))
                         breaks_y = labeling::extended(0, maxheight, m = 4)
+                        maxheight_j = 0
+                        for (bam_index in 1:length(density_list)) { # Emulate code below to obtain max top arch height
+
+                                id = names(density_list)[bam_index]
+                                d = data.table(density_list[[id]])
+                                junctions = data.table(junction_list[[id]])
+
+                                row_i = c()
+                                if (nrow(junctions) >0 ) {
+                                        junctions$jlabel = as.character(junctions$count)
+                                        junctions = setNames(junctions[,.(max(y), max(yend),round(mean(count)),paste(jlabel,collapse=",")), keyby=.(x,xend)], names(junctions))
+                                        if ("%(args.aggr)s" != "") {
+                                                junctions = setNames(junctions[,.(max(y), max(yend),round(%(args.aggr)s(count)),round(%(args.aggr)s(count))), keyby=.(x,xend)], names(junctions))
+                                        }
+                                        row_i = 1:nrow(junctions)
+                                } 
+                                for (i in row_i) {
+                                        j = as.numeric(junctions[i,1:5])
+                                        if ("%(args.aggr)s" != "") { 
+                                                j[3] = ifelse(length(d[x==j[1]-1,y])==0, 0, max(as.numeric(d[x==j[1]-1,y])))
+                                                j[4] = ifelse(length(d[x==j[2]+1,y])==0, 0, max(as.numeric(d[x==j[2]+1,y])))
+                                        }
+                                        if (i%%%%2 != 0) { #top
+                                          maxheight_j = max(maxheight_j, max(j[3:4]) * 1.2)             
+                                        }
+                                }
+                        }
                 }
 
                 if(exists('coord_dict')){
@@ -788,7 +816,7 @@ if __name__ == "__main__":
                                 breaks_y = labeling::extended(0, maxheight, m = 4)
                                 gp = gp + scale_y_continuous(breaks = breaks_y)
                         } else {
-                                gp = gp + scale_y_continuous(breaks = breaks_y, limits = c(NA, maxheight))
+                                gp = gp + scale_y_continuous(breaks = breaks_y, limits = c(NA, max(maxheight, maxheight_j)))
                         }
 
                         # Aggregate junction counts
