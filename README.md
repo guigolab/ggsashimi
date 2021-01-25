@@ -1,6 +1,7 @@
 # ggsashimi
 
 [![Build Status](https://travis-ci.com/guigolab/ggsashimi.svg?branch=master)](https://travis-ci.com/guigolab/ggsashimi)
+[![Quay.io](https://img.shields.io/badge/quay.io-guigolab/ggsashimi-blue?logo=docker)](https://quay.io/repository/guigolab/ggsashimi)
 
 Command-line tool for the visualization of splicing events across multiple samples
 
@@ -58,10 +59,10 @@ To avoid dependencies issues, the script is also available through a docker imag
 
 ### Download docker image <a name="download-docker-image"></a>
 
-A public `ggsashimi` Docker image is available in the [Docker Hub](https://hub.docker.com/r/guigolab/ggsashimi/) and can be downloaded as follows:
+A public `ggsashimi` Docker image is available at [Quay.io](https://quay.io/repository/guigolab/ggsashimi) and can be downloaded as follows:
 
 ```shell
-docker pull guigolab/ggsashimi
+docker pull quay.io/guigolab/ggsashimi
 ```
 
 __Alternatively__, we provide the Dockerfile if you want to build your local docker image, although most users will not need it.
@@ -116,7 +117,7 @@ docker run -w $PWD -v $PWD:$PWD -v $f:$f guigolab/ggsashimi -b examples/input_ba
 
 ## Usage <a name="usage"></a>
 
-Execute the script with `--help` option for a complete list of options.  
+Execute the script with `--help` option for a complete list of options.
 Sample data and usage examples can be found at `examples`
 
 ## Galaxy <a name="galaxy"></a>
