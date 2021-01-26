@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 # Import modules
-from argparse import ArgumentParser
 import subprocess as sp
 import sys, re, copy, os, codecs, gzip
+from argparse import ArgumentParser, Action as ArgParseAction
 from collections import OrderedDict
 
 
@@ -18,8 +18,29 @@ def get_version():
 
 
 def define_options():
+
+        class DebugInfoAction(ArgParseAction):
+
+                def __init__(self, option_strings, dest, **kwargs):
+                        super(DebugInfoAction, self).__init__(option_strings, dest, nargs=0, **kwargs)
+
+                def __call__(self, parser, namespace, values, option_string=None):
+                        returncode = 0
+                        try:
+                                get_debug_info()
+                        except sp.CalledProcessError as CPE:
+                                print("ERROR: {}".format(CPE.output.strip().decode('utf-8')))
+                                returncode = CPE.returncode
+                        except Exception as e:
+                                print("ERROR: {}".format(e))
+                                returncode = 1
+                        finally:
+                                parser.exit(returncode)
+
+
         # Argument parsing
         parser = ArgumentParser(description='Create sashimi plot for a given genomic region')
+        # parser.register('action', 'debuginfo', DebugInfoAction)
         parser.add_argument("-b", "--bam", type=str, required=True,
                 help="""
                 Individual bam file or file with a list of bam files.
@@ -71,6 +92,8 @@ def define_options():
                 help="Output file format: <pdf> <svg> <png> <jpeg> <tiff> [default=%(default)s]")
         parser.add_argument("-R", "--out-resolution", type=int, default=300, dest="out_resolution",
                 help="Output file resolution in PPI (pixels per inch). Applies only to raster output formats [default=%(default)s]")
+        parser.add_argument("--debug-info", action=DebugInfoAction,
+                help="Show several system information useful for debugging purposes [default=%(default)s]")
         parser.add_argument('--version', action='version', version=get_version())
 #       parser.add_argument("-s", "--smooth", action="store_true", default=False, help="Smooth the signal histogram")
         return parser
@@ -299,7 +322,7 @@ def read_gtf(f, c):
                                 continue
                         if el not in ("transcript", "exon"):
                                 continue
-                        try: 
+                        try:
                                 transcript_id = re.findall('transcript_id ("[^"]+")', tags)[0]
                         except KeyError:
                                 print("ERROR: 'transcript_id' attribute is missing in the GTF file.")
@@ -440,7 +463,7 @@ def gtf_for_ggplot(annotation, start, end, arrow_bins):
         }
         gtfp = gtfp + scale_y_discrete(expand=c(0,0.5))
         gtfp = gtfp + scale_x_continuous(expand=c(0,0.25))
-        gtfp = gtfp + coord_cartesian(xlim = c(%s,%s)) 
+        gtfp = gtfp + coord_cartesian(xlim = c(%s,%s))
         gtfp = gtfp + labs(y=NULL)
         gtfp = gtfp + theme(axis.line = element_blank(), axis.text.x = element_blank(), axis.ticks = element_blank())
         """ %(start, end)
@@ -581,6 +604,45 @@ def colorize(d, p, color_factor):
                 s = "color_list = list(%s)\n" %( ",".join('"%s"="%s"' %(k, "grey") for k,v in d.items()) )
         return s
 
+def get_debug_info():
+        """
+        Return useful debug information:
+        - OS info
+        - Linux distribution
+        - Python version
+        - program version
+        - output of R `sessionInfo()`
+        """
+        # get system info
+        import platform
+        system = platform.system()
+        info = OrderedDict()
+        info["OS"] = "{}-{}".format(system, platform.machine())
+        if system == "Linux":
+                release = sp.check_output(["lsb_release", "-ds"])
+                info["Distro"] = release.strip().decode('utf-8')
+        info["Python"] = platform.python_version()
+        # info["ggsashimi"] = __version__
+        print(get_version())
+        print('')
+        maxlen = max(map(len, info.keys()))
+        for k,v in info.items():
+                print("{:{width}}: {:>}".format(k ,v, width=maxlen))
+        print('')
+
+        # get R session info
+        r_exec = ';'.join([
+                "library(ggplot2)",
+                "library(grid)",
+                "library(gridExtra)",
+                "library(data.table)",
+                "library(gtable)",
+                "sessionInfo()",
+        ])
+
+        r_command = "R --vanilla --slave -e '{}'".format(r_exec)
+        r_info = sp.check_output(r_command, shell=True, stderr=sp.STDOUT)
+        print(r_info.strip().decode('utf-8'))
 
 
 if __name__ == "__main__":
@@ -716,7 +778,7 @@ if __name__ == "__main__":
                 }
 
                 if(%(fix_y_scale)s) {
-                        
+
                         maxheight = max(unlist(lapply(density_list, function(df){max(df$y)})))
                         breaks_y = labeling::extended(0, maxheight, m = 4)
                         maxheight_j = 0
@@ -734,15 +796,15 @@ if __name__ == "__main__":
                                                 junctions = setNames(junctions[,.(max(y), max(yend),round(%(args.aggr)s(count)),round(%(args.aggr)s(count))), keyby=.(x,xend)], names(junctions))
                                         }
                                         row_i = 1:nrow(junctions)
-                                } 
+                                }
                                 for (i in row_i) {
                                         j = as.numeric(junctions[i,1:5])
-                                        if ("%(args.aggr)s" != "") { 
+                                        if ("%(args.aggr)s" != "") {
                                                 j[3] = ifelse(length(d[x==j[1]-1,y])==0, 0, max(as.numeric(d[x==j[1]-1,y])))
                                                 j[4] = ifelse(length(d[x==j[2]+1,y])==0, 0, max(as.numeric(d[x==j[2]+1,y])))
                                         }
                                         if (i%%%%2 != 0) { #top
-                                          maxheight_j = max(maxheight_j, max(j[3:4]) * 1.2)             
+                                          maxheight_j = max(maxheight_j, max(j[3:4]) * 1.2)
                                         }
                                 }
                         }
