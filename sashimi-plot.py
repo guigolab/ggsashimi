@@ -6,6 +6,17 @@ import subprocess as sp
 import sys, re, copy, os, codecs, gzip
 from collections import OrderedDict
 
+
+__version__ = "0.5.1-dev"
+
+
+def get_version():
+        """Return version information."""
+        prog = 'ggsashimi'
+        version = '{} v{}'.format(prog, __version__)
+        return version
+
+
 def define_options():
         # Argument parsing
         parser = ArgumentParser(description='Create sashimi plot for a given genomic region')
@@ -60,6 +71,7 @@ def define_options():
                 help="Output file format: <pdf> <svg> <png> <jpeg> <tiff> [default=%(default)s]")
         parser.add_argument("-R", "--out-resolution", type=int, default=300, dest="out_resolution",
                 help="Output file resolution in PPI (pixels per inch). Applies only to raster output formats [default=%(default)s]")
+        parser.add_argument('--version', action='version', version=get_version())
 #       parser.add_argument("-s", "--smooth", action="store_true", default=False, help="Smooth the signal histogram")
         return parser
 
