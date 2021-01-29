@@ -1,6 +1,6 @@
 # ggsashimi
 
-[![Build Status](https://travis-ci.com/guigolab/ggsashimi.svg?branch=master)](https://travis-ci.com/guigolab/ggsashimi)
+[![Build Status](https://github.com/guigolab/ggsashimi/workflows/CI/badge.svg)](https://github.com/guigolab/ggsashimi/actions)
 
 Command-line tool for the visualization of splicing events across multiple samples
 

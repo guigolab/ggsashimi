@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches:
+    - main
+    - master
+    - dev
+  pull_request:
+    branches:
+    - main
+    - master
+
+jobs:
+  build:
+
+    if: "!contains(github.event.head_commit.message, '[ci skip]')"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - { r: 'release', ggplot: '3.3.3' }
+          - { r: 'oldrel', ggplot: '3.3.3' }
+          - { r: '3.5.3', ggplot: '2.2.1' }
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup R
+      uses: r-lib/actions/setup-r@v1
+      with:
+        r-version: ${{ matrix.config.r }}
+
+    - name: Cache R packages
+      uses: actions/cache@v2
+      with:
+        path: ${{ env.R_LIBS_USER }}
+        key: ${{ runner.os }}-${{ matrix.config.r }}
+        restore-keys: ${{ runner.os }}-${{ matrix.config.r }}
+    - name: Install remotes
+      run: |
+        install.packages("remotes")
+      shell: Rscript {0}
+    - name: Install R packages
+      run: |
+        remotes::install_version("ggplot2", version="${{ matrix.config.ggplot }}")
+        remotes::install_cran(c("gridExtra", "data.table", "svglite"))
+      shell: Rscript {0}
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Cache Python packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade --upgrade-strategy eager pip wheel
+        if [ -f requirements.txt ]; then pip install --upgrade --upgrade-strategy eager -r requirements.txt; fi
+        if [ -f requirements.dev.txt ]; then pip install --upgrade --upgrade-strategy eager -r requirements.dev.txt; fi
+    - name: Test with tox
+      run:
+        tox
+    - name: Run CI test script
+      run:
+        bash ci/run.sh
