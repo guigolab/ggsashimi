@@ -116,8 +116,25 @@ docker run -w $PWD -v $PWD:$PWD -v $f:$f guigolab/ggsashimi -b examples/input_ba
 
 ## Usage <a name="usage"></a>
 
-Execute the script with `--help` option for a complete list of options.  
+Execute the script with `--help` option for a complete list of options.
 Sample data and usage examples can be found at `examples`
+
+### Debug mode
+
+Debug mode allows to run `ggsashimi` without producing any graphical output. It creates an `Rscript` file in the current working folder, containing all the R commands to generate the plot. It can be useful when reporting bugs or trying to debug the program behavior. Debug mode can be enabled by setting the environment variable `GGSASHIMI_DEBUG` when running the script, e.g.:
+
+```
+# export the environment variable
+$ export GGSASHIMI_DEBUG=yes
+$ sashimi-plot.py -b ...
+```
+
+or
+
+```
+# set the environment variable inline
+$ GGSASHIMI_DEBUG=yes sashimi-plot.py -b ...
+```
 
 ## Galaxy <a name="galaxy"></a>
 
