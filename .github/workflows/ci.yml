@@ -65,4 +65,4 @@ jobs:
         tox
     - name: Run CI test script
       run:
-        bash ci/run.sh
+        bash .github/workflows/ci.sh
