@@ -1,0 +1,37 @@
+on:
+  push:
+    tags:
+    - 'v*'
+
+name: Create Release
+
+jobs:
+  build:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Get version
+      run: |
+        version="${github_ref##*/v}"
+        echo "version=$version" >> $GITHUB_ENV
+      env:
+        github_ref: ${{ github.ref }}
+    - name: Get changelog
+      run: |
+        previous_version=$(git describe --abbrev=0 HEAD^)
+        git log --oneline --pretty="- %s" ...$previous_version > changelog.md
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Version ${{ env.version }}
+        body_path: changelog.md
+        draft: true
+        prerelease: false
