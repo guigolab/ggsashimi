@@ -46,7 +46,7 @@ git clone https://github.com/guigolab/ggsashimi.git
 In order to run `ggsashimi` the following software components and packages are required:
 
 - python (2.7 or 3)
-- samtools (>=1.3)
+- pysam (>=0.10.0)
 - R (>=3.3)
   - ggplot2 (>=2.2.1)
   - data.table (>=1.10.4)
