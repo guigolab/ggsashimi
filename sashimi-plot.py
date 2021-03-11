@@ -311,7 +311,7 @@ def read_gtf(f, c):
         transcripts = OrderedDict()
         chr, start, end = parse_coordinates(c)
         end = end -1
-        with gzip.open(f) if f.endswith(".gz") else open(f) as openf:
+        with gzip.open(f, 'rt') if f.endswith(".gz") else open(f) as openf:
                 for line in openf:
                         if line.startswith("#"):
                                 continue
