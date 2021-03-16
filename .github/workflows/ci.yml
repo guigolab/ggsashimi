@@ -17,6 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        python_version: [2.7, 3.8]
         config:
           - { r: 'release', ggplot: '3.3.3' }
           - { r: 'oldrel', ggplot: '3.3.3' }
@@ -45,7 +46,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.9
+        python-version: ${{ matrix.python_version }}
     - name: Cache Python packages
       uses: actions/cache@v2
       with:
@@ -56,9 +57,9 @@ jobs:
         python -m pip install --upgrade --upgrade-strategy eager pip wheel
         if [ -f requirements.txt ]; then pip install --upgrade --upgrade-strategy eager -r requirements.txt; fi
         if [ -f requirements.dev.txt ]; then pip install --upgrade --upgrade-strategy eager -r requirements.dev.txt; fi
-    - name: Test with tox
+    - name: Test with pytest
       run:
-        tox
+        pytest
     - name: Run CI test script
       run:
         bash .github/workflows/ci.sh
