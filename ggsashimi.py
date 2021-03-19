@@ -803,7 +803,8 @@ if __name__ == "__main__":
                                                 j[4] = ifelse(length(d[x==j[2]+1,y])==0, 0, max(as.numeric(d[x==j[2]+1,y])))
                                         }
                                         if (i%%%%2 != 0) { #top
-                                          maxheight_j = max(maxheight_j, max(j[3:4]) * 1.2)
+                                                set.seed(mean(j[3:4]))
+                                                maxheight_j = max(maxheight_j, max(j[3:4]) * runif(1, 1.2, 1.5))
                                         }
                                 }
                         }
@@ -919,8 +920,8 @@ if __name__ == "__main__":
 
                                 # Find intron midpoint
                                 xmid = round(mean(j[1:2]), 1)
-                                ypad = 0.2*(j[2]-j[1])/(max(d[,x])-min(d[,x]))
-                                ymid = max(j[3:4]) * (1 + ypad)
+                                set.seed(mean(j[3:4]))
+                                ymid = max(j[3:4]) * runif(1, 1.2, 1.5)
 
                                 # Thickness of the arch
                                 lwd = scale_lwd(j[5]/j_tot_counts)
@@ -932,7 +933,7 @@ if __name__ == "__main__":
                                 # Choose position of the arch (top or bottom)
                                 nss = i
                                 if (nss%%%%2 == 0) {  #bottom
-                                        ymid = -(0.2 + ypad) * maxheight
+                                        ymid = -runif(1, 0.2, 0.4) * maxheight
                                         # Draw the arcs
                                         # Left
                                         curve = xsplineGrob(x=c(0, 0, 1, 1), y=c(1, 0, 0, 0), shape=1, gp=curve_par)
