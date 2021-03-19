@@ -3,7 +3,7 @@ import re
 import importlib 
 from collections import OrderedDict
 
-sp = importlib.import_module('sashimi-plot')
+sp = importlib.import_module('ggsashimi')
 
 def test_parse_coordinates():
     for s in ['chr1:1000-2000', 'chr1:1,000-2,000']:

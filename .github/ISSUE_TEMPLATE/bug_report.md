@@ -35,7 +35,7 @@ Output produced by the failing execution. Please highlight it as a code block.
 ### Environment
 
 <!--
-Information about OS, Python and R versions obtained with the command `sashimi-plot.py --debug-info`.
+Information about OS, Python and R versions obtained with the command `ggsashimi.py --debug-info`.
 -->
 
 ### Additional context

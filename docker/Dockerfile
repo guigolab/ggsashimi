@@ -64,8 +64,8 @@ COPY --from=builder /opt/R /opt/R
 COPY --from=builder /usr/local/lib/python3.8/dist-packages/pysam /usr/local/lib/python3.8/dist-packages/pysam
 
 # Copy ggsashimi in the docker image
-ADD sashimi-plot.py /
+ADD ggsashimi.py /
 
 # Run the container as an executable
-ENTRYPOINT ["/sashimi-plot.py"]
+ENTRYPOINT ["/ggsashimi.py"]
 

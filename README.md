@@ -20,19 +20,19 @@ Command-line tool for the visualization of splicing events across multiple sampl
 The `ggsashimi` script can be directly downloaded from this repository:
 
 ```shell
-wget https://raw.githubusercontent.com/guigolab/ggsashimi/master/sashimi-plot.py
+wget https://raw.githubusercontent.com/guigolab/ggsashimi/master/ggsashimi.py
 ```
 
 Change the execution permissions:
 
 ```shell
-chmod u+x sashimi-plot.py
+chmod u+x ggsashimi.py
 ```
 
 Provided all dependencies are already installed (see below), you can directly execute the script:
 
 ```shell
-./sashimi-plot.py --help
+./ggsashimi.py --help
 ```
 
 To download the entire repository, which includes the dockerfile and example files:
@@ -126,14 +126,14 @@ Debug mode allows to run `ggsashimi` without producing any graphical output. It 
 ```
 # export the environment variable
 $ export GGSASHIMI_DEBUG=yes
-$ sashimi-plot.py -b ...
+$ ggsashimi.py -b ...
 ```
 
 or
 
 ```
 # set the environment variable inline
-$ GGSASHIMI_DEBUG=yes sashimi-plot.py -b ...
+$ GGSASHIMI_DEBUG=yes ggsashimi.py -b ...
 ```
 
 ## Galaxy <a name="galaxy"></a>
