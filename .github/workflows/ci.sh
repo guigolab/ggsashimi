@@ -24,33 +24,33 @@ for mode in ${modes[@]}; do
     case $mode in
     sashimi_anno)
         sashimi_md5=(
-            "131d3ad1bb27c91693c342fbc0667d48" # R 3.3.2 - ggplot2 2.2.1
-            "e7f72a5d373c93b4b0cbfa4976e9bd15" # R 3.6.3 - ggplot2 3.3.3
-            "5617a83e8b3ba6d7478c40fcff99f5d3" # R 4.0.3 - ggplot2 3.3.3
+            "c824e33480b828b0258eac90e1420991" # R 3.3.2 - ggplot2 2.2.1
+            "f1183e65b5b89af995af3ba2e6c306c3" # R 3.6.3 - ggplot2 3.3.3
+            "b11dec12a89ecdd2039d475b747e82fa" # R 4.0.3 - ggplot2 3.3.3
         )
         anno="-g examples/annotation.gtf"
         ;;
     sashimi_color)
         sashimi_md5=(
-            "41fee9e7e51a13a09c6d068cc6cb93cf" # R 3.3.2 - ggplot2 2.2.1
-            "bb186bcd74674e7c8027e0dcfe2eb1fe" # R 3.6.3 - ggplot2 3.3.3
-            "2606cf532430534c15cfc3a5d0db3620" # R 4.0.3 - ggplot2 3.3.3
+            "e62d13587f71d74dc1df86bfd0aed2b7" # R 3.3.2 - ggplot2 2.2.1
+            "532581f0e2287a32535e2c5b848eb59c" # R 3.6.3 - ggplot2 3.3.3
+            "38681c67b6db83206dc879b69ce2be2f" # R 4.0.3 - ggplot2 3.3.3
         )
         color="-C 3"
         ;;
     sashimi_aggr)
         sashimi_md5=(
-            "50674d8812194bbb8f8f8ddab9238b3d" # R 3.3.2 - ggplot2 2.2.1
-            "5a0342a6093284ec0b9f85b01acb72e4" # R 3.6.3 - ggplot2 3.3.3
-            "69b2a3f5028b1d9d0675ca98967cf353" # R 4.0.3 - ggplot2 3.3.3
+            "ee3c894ffc734d957013b6cfefdb2d01" # R 3.3.2 - ggplot2 2.2.1
+            "88afa86dbedea4a335b3fc07f94b6cd6" # R 3.6.3 - ggplot2 3.3.3
+            "4049559a67d8ab4b5e17e49ed285febc" # R 4.0.3 - ggplot2 3.3.3
         )
         aggr="-C 3 -O 3 -A mean_j"
         ;;
     *)
         sashimi_md5=(
-            "b8ee3a415a80030ce92de15f40054a40" # R 3.3.2 - ggplot2 2.2.1
-            "567d245fcd2d3d02288976e18bdee6b0" # R 3.6.3 - ggplot2 3.3.3
-            "62d039688abd9f082b44abf98f313ae2" # R 4.0.3 - ggplot2 3.3.3
+            "8be57782f81217393db59786e16049c7" # R 3.3.2 - ggplot2 2.2.1
+            "b5b9b33bfc4b51944236baea43096b06" # R 3.6.3 - ggplot2 3.3.3
+            "15c609eda4319f5395b1db8ab747d6e9" # R 4.0.3 - ggplot2 3.3.3
         )
         ;;
     esac
