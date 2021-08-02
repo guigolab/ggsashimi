@@ -168,11 +168,15 @@ def read_bam(f, c, s):
         if s != "NONE":
                 a["-"] = [0] * (end - start)
                 junctions["-"] = OrderedDict()
-        
+
         samfile = pysam.AlignmentFile(f)
 
         for read in samfile.fetch(chr, start, end):
-                 
+
+                # Move forward if read is unmapped
+                if read.is_unmapped:
+                    continue
+
                 samflag, read_start, CIGAR = read.flag, read.reference_start+1, read.cigarstring
 
                 # Ignore reads with more exotic CIGAR operators
