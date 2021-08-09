@@ -794,7 +794,7 @@ if __name__ == "__main__":
                                 row_i = c()
                                 if (nrow(junctions) >0 ) {
                                         junctions$jlabel = as.character(junctions$count)
-                                        junctions = setNames(junctions[,.(max(y), max(yend),round(mean(count)),paste(jlabel,collapse=",")), keyby=.(x,xend)], names(junctions))
+                                        junctions = setNames(junctions[,.(max(y), max(yend),round(%(args.aggr)s(count)),paste(jlabel,collapse=",")), keyby=.(x,xend)], names(junctions))
                                         if ("%(args.aggr)s" != "") {
                                                 junctions = setNames(junctions[,.(max(y), max(yend),round(%(args.aggr)s(count)),round(%(args.aggr)s(count))), keyby=.(x,xend)], names(junctions))
                                         }
@@ -902,7 +902,7 @@ if __name__ == "__main__":
                         if (nrow(junctions) >0 ) {
 
                                 junctions$jlabel = as.character(junctions$count)
-                                junctions = setNames(junctions[,.(max(y), max(yend),round(mean(count)),paste(jlabel,collapse=",")), keyby=.(x,xend)], names(junctions))
+                                junctions = setNames(junctions[,.(max(y), max(yend),round(%(args.aggr)s(count)),paste(jlabel,collapse=",")), keyby=.(x,xend)], names(junctions))
                                 if ("%(args.aggr)s" != "") {
                                         junctions = setNames(junctions[,.(max(y), max(yend),round(%(args.aggr)s(count)),round(%(args.aggr)s(count))), keyby=.(x,xend)], names(junctions))
                                 }
