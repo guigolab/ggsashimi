@@ -584,7 +584,7 @@ def make_R_lists(id_list, d, overlay_dict, aggr, intersected_introns):
 
 
 def plot(R_script):
-        p = sp.Popen("R --vanilla --slave", shell=True, stdin=sp.PIPE)
+        p = sp.Popen("R --slave", shell=True, stdin=sp.PIPE)
         p.communicate(input=R_script.encode('utf-8'))
         p.stdin.close()
         p.wait()
