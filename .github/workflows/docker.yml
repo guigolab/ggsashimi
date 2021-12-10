@@ -38,7 +38,7 @@ jobs:
       id: test
       run: |
           ver=$(docker run --rm ${{ env.TEST_TAG }} --version)
-          [[ "$ver" == "ggsashimi v${{version}}" ]]
+          [[ "$ver" == "ggsashimi ${github_ref##*/}" ]]
     - name: Build and push
       id: build
       uses: docker/build-push-action@v2
