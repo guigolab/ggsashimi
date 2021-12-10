@@ -8,7 +8,7 @@ from collections import OrderedDict
 import pysam
 
 
-__version__ = "1.1.4-dev"
+__version__ = "1.1.4"
 
 
 def get_version():
