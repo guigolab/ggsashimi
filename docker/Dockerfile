@@ -61,7 +61,7 @@ ENV LANG=en_US.UTF-8 \
 
 # Copy installed libraries from builder
 COPY --from=builder /opt/R /opt/R
-COPY --from=builder /usr/local/lib/python3.8/dist-packages/pysam /usr/local/lib/python3.8/dist-packages/pysam
+COPY --from=builder /usr/local/lib/python3.8/dist-packages /usr/local/lib/python3.8/dist-packages
 
 # Copy ggsashimi in the docker image
 ADD ggsashimi.py /
