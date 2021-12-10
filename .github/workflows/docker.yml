@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
 
+env:
+  TEST_TAG: ${{ github.repository }}:test
+
 jobs:
   build:
     name: Build Docker image
@@ -12,8 +15,8 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Docker meta
-      id: docker_meta
-      uses: crazy-max/ghaction-docker-meta@v1
+      id: meta
+      uses: docker/metadata-action@v3
       with:
         images: ${{ github.repository }}
         tag-semver: |
@@ -23,8 +26,21 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - name: Build and export to Docker
+      id: build-test
+      uses: docker/build-push-action@v2
+      with:
+        file: docker/Dockerfile
+        load: true
+        tags: ${{ env.TEST_TAG }}
+        labels: ${{ steps.docker_meta.outputs.labels }}
+    - name: Test
+      id: test
+      run: |
+          ver=$(docker run --rm ${{ env.TEST_TAG }} --version)
+          [[ "$ver" == "ggsashimi v${{version}}" ]]
     - name: Build and push
-      id: docker_build
+      id: build
       uses: docker/build-push-action@v2
       with:
         file: docker/Dockerfile
