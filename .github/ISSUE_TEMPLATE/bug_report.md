@@ -36,6 +36,7 @@ Output produced by the failing execution. Please highlight it as a code block.
 
 <!--
 Information about OS, Python and R versions obtained with the command `ggsashimi.py --debug-info`.
+If running in a container, please indicate the version of Docker/Singularity and the host OS instead.
 -->
 
 ### Additional context
