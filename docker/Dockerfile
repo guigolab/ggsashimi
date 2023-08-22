@@ -11,7 +11,8 @@ RUN apt-get update \
          libfontconfig1-dev \
          lsb-release \
          python3-pip \
-         python-is-python3
+         python-is-python3 \
+         python3-dev
 
 # install R
 ARG R_VER=3.6.3
@@ -46,7 +47,10 @@ RUN apt-get update \
         libicu66 \
         liblapack3 \
         locales \
-        python-is-python3
+        python-is-python3 \
+        libtiff5 \
+        libpng16-16 \
+        libpangocairo-1.0-0
 
 # set locale
 RUN echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen \
