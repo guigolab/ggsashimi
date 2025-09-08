@@ -311,35 +311,46 @@ def read_palette(f):
 
 
 def read_gtf(f, c):
-        exons = OrderedDict()
-        transcripts = OrderedDict()
-        chr, start, end = parse_coordinates(c)
-        end = end -1
-        with gzip.open(f, 'rt') if f.endswith(".gz") else open(f) as openf:
-                for line in openf:
-                        if line.startswith("#"):
-                                continue
-                        el_chr, _, el, el_start, el_end, _, strand, _, tags = line.strip().split("\t")
-                        if el_chr != chr:
-                                continue
-                        if el not in ("transcript", "exon"):
-                                continue
-                        try:
-                                transcript_id = re.findall('transcript_id ("[^"]+")', tags)[0]
-                        except KeyError:
-                                print("ERROR: 'transcript_id' attribute is missing in the GTF file.")
-                                exit(1)
-                        el_start, el_end = int(el_start) -1, int(el_end)
-                        strand = '"' + strand + '"'
-                        if el == "transcript":
-                                if (el_end > start and el_start < end):
-                                        transcripts[transcript_id] = max(start, el_start), min(end, el_end), strand
-                                continue
-                        if el == "exon":
-                                if (start < el_start < end or start < el_end < end):
-                                        exons.setdefault(transcript_id, []).append((max(el_start, start), min(end, el_end), strand))
+    exons = OrderedDict()
+    transcripts = OrderedDict()
+    chr, start, end = parse_coordinates(c)
+    end = end - 1
 
-        return transcripts, exons
+    openf = gzip.open(f, 'rt') if f.endswith(".gz") else open(f)
+    with openf:
+        for line in openf:
+            if line.startswith("#"):
+                continue
+            parts = line.rstrip("\n\r").split("\t")
+            if len(parts) < 9:
+                continue
+            el_chr, _, el, el_start, el_end, _, strand, _, tags = parts
+            if el_chr != chr:
+                continue
+            if el not in ("transcript", "exon"):
+                continue
+
+            # Tolerant transcript_id extraction
+            m = re.search(r'transcript_id "[^"]+"', tags)
+            if not m:
+                continue
+            transcript_id = m.group(0).split(' ', 1)[1]  # e.g. ->  "ENST...”
+
+            el_start, el_end = int(el_start) - 1, int(el_end)
+            strand = '"' + strand + '"'
+
+            if el == "transcript":
+                if (el_end > start and el_start < end):
+                    transcripts[transcript_id] = max(start, el_start), min(end, el_end), strand
+                continue
+
+            if el == "exon":
+                if (start < el_start < end or start < el_end < end):
+                    exons.setdefault(transcript_id, []).append(
+                        (max(el_start, start), min(end, el_end), strand)
+                    )
+
+    return transcripts, exons
 
 
 def make_introns(transcripts, exons, intersected_introns=None):
